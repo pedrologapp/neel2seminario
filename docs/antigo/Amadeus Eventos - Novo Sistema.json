@@ -1,0 +1,1168 @@
+{
+  "name": "Amadeus Eventos - Novo Sistema",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://eventos.escolaamadeus.com/api/inscricoes/log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Webhook-Secret",
+              "value": "1d3321952567de9e6c58e7fdbd6f23c01f7757495c19bc527fa21905a35fff95"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "=  {\n    \"inscricaoId\": \"{{ $('Inscr: Sanitizar').first().json.inscricaoId }}\",\n    \"etapa\": \"cliente_asaas_criado\",\n    \"mensagem\": \"Cliente criado/encontrado no Asaas\",\n    \"detalhe\": { \"asaasCustomerId\": \"{{ $json.id }}\" }\n  }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1376,
+        1584
+      ],
+      "id": "5e8f219d-2804-4b59-bd22-f026da810c76",
+      "name": "Log: Cliente Asaas"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://eventos.escolaamadeus.com/api/inscricoes/log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Webhook-Secret",
+              "value": "1d3321952567de9e6c58e7fdbd6f23c01f7757495c19bc527fa21905a35fff95"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "= {\n    \"inscricaoId\": \"{{ $('Inscr: Sanitizar').first().json.inscricaoId }}\",\n    \"etapa\": \"cobranca_criada\",\n    \"mensagem\": \"Cobrança criada no Asaas\",\n    \"detalhe\": { \"asaasPaymentId\": \"{{ $json.id }}\", \"billingType\": \"{{ $json.billingType }}\" }\n  }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -768,
+        1584
+      ],
+      "id": "519831ba-081a-4b88-b54f-164e8252a3a1",
+      "name": "Log: Cobranca Criada"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://eventos.escolaamadeus.com/api/inscricoes/log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Webhook-Secret",
+              "value": "1d3321952567de9e6c58e7fdbd6f23c01f7757495c19bc527fa21905a35fff95"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "=\n  {\n    \"inscricaoId\": \"{{ $('Notif: Validar').first().json.inscricaoId }}\",\n    \"etapa\": \"notificacao_asaas_recebida\",\n    \"mensagem\": \"Asaas notificou pagamento confirmado\"\n  }\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1168,
+        2272
+      ],
+      "id": "e24aded2-a4f7-4606-b1fb-8e21febbfff0",
+      "name": "Log: Notificacao Recebida"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://eventos.escolaamadeus.com/api/inscricoes/log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Webhook-Secret",
+              "value": "1d3321952567de9e6c58e7fdbd6f23c01f7757495c19bc527fa21905a35fff95"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "=  {\n    \"inscricaoId\": \"{{ $('Notif: Gerar Tickets').first().json.inscricao_id }}\",\n    \"etapa\": \"tickets_gerados\",\n    \"mensagem\": \"{{ $('Notif: Gerar Tickets').all().length }} ticket(s) gerado(s) e salvo(s)\"\n  }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -368,
+        2272
+      ],
+      "id": "a596ee54-3de7-430c-8218-6a6e300151b3",
+      "name": "Log: Tickets Gerados"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Inscr: Sanitizar').item.json.paymentMethod }}",
+                    "rightValue": "pix",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "pix"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Inscr: Sanitizar').item.json.paymentMethod }}",
+                    "rightValue": "credit",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "cartao"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -1168,
+        1392
+      ],
+      "id": "ae6e0a0f-015e-44da-ab7c-29237d8d36c6",
+      "name": "Inscr: PIX ou Cartao?1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        -768,
+        1392
+      ],
+      "id": "6bf8513e-e485-4ee6-a998-708e3c91e423",
+      "name": "Inscr: Merge1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const a = $input.first().json;\nreturn [{ json: {\n  paymentUrl: a.invoiceUrl || a.bankSlipUrl || '',\n  asaasPaymentId: a.id,\n  billingType: a.billingType,\n  status: a.status,\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -576,
+        1392
+      ],
+      "id": "219a1ec9-dbc0-4ef9-ac4a-eafcb3db4e13",
+      "name": "Inscr: Montar Resposta1"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -368,
+        1392
+      ],
+      "id": "eb54691c-39c1-437c-9277-77e34b7e7c3f",
+      "name": "Inscr: Respond1"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"ok\": true,\n  \"inscricaoId\": \"{{ $('Notif: Gerar Tickets').first().json.inscricao_id }}\",\n  \"totalTickets\": {{ $('Notif: Gerar Tickets').all().length }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        2288
+      ],
+      "id": "91e2f96c-997c-4ddd-bb1d-f20e820f1ea8",
+      "name": "Notif: Respond Sucesso1"
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Image",
+        "session": "=amadeus",
+        "chatId": "={{ $('Gerar_Tokens').item.json.phone_waha }}",
+        "file": "={\n  \"mimetype\": \"image/png\",\n  \"filename\": \"qrcode.png\",\n  \"url\": \"{{ $('Gerar_Tokens').item.json.qr_url }}\"\n}",
+        "caption": "=💙 {{ $('Notif: Buscar Evento').first().json.nome }}\n\n  🎟️ Senha:  *{{ $json.senha_label }}*\n  👤 Aluno: *{{ $('Notif: Buscar Aluno').first().json.nome_completo }}* ({{ $('Notif: Buscar Aluno').first().json.serie }})\n  📅 Data: *{{ ($('Notif: Buscar Evento').first().json.data_evento || '').split('-').reverse().join('/') }}*\n  📍 Local: *{{ $('Notif: Buscar Evento').first().json.local }}*\n\n  Apresente este QR Code na entrada do evento. ✨\n\n",
+        "requestOptions": {}
+      },
+      "name": "Enviar_QRCode",
+      "type": "n8n-nodes-waha.WAHA",
+      "typeVersion": 202411,
+      "position": [
+        1056,
+        2080
+      ],
+      "id": "5b907790-797a-40ab-84dd-ba1986a5f743",
+      "credentials": {
+        "wahaApi": {
+          "id": "Wa5n1cK3Gl4WH4bW",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Text",
+        "session": "=amadeus",
+        "chatId": "={{ $json.phone_waha }}",
+        "text": "={{ $json.texto }}",
+        "requestOptions": {}
+      },
+      "name": "Enviar_Confirmacao",
+      "type": "n8n-nodes-waha.WAHA",
+      "typeVersion": 202411,
+      "position": [
+        224,
+        2080
+      ],
+      "id": "3ea2a5e7-a5da-41ff-a46b-9ad3d7ed1328",
+      "credentials": {
+        "wahaApi": {
+          "id": "Wa5n1cK3Gl4WH4bW",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.asaas.com/api/v3/customers",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "access_token",
+              "value": "__ASAAS_TOKEN_REMOVIDO__"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"name\": \"{{ $('Inscr: Sanitizar').item.json.parentName }}\",\n  \"email\": \"{{ $json.email }}\",\n  \"phone\": \"{{ $json.phone }}\",\n  \"cpfCnpj\": \"{{ $json.cpf }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1376,
+        1392
+      ],
+      "id": "f56f74b4-1f67-4d94-9aa6-f76d4785ac33",
+      "name": "Inscr: Asaas Customer"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sanitiza telefone pro formato WAHA: 55DDDNNNNNNNN@c.us (sem 9 extra)\nconst data = $input.first().json.body;\n\nconst formatPhone = (raw) => {\n  let d = (raw || '').toString().replace(/\\D/g, '');\n  if (d.startsWith('55') && d.length > 11) d = d.substring(2);\n  let ddd, num;\n  if (d.length <= 9) { ddd = '84'; num = d; }\n  else { ddd = d.substring(0, 2); num = d.substring(2); }\n  if (num.length === 9 && num.startsWith('9')) num = num.substring(1);\n  return { tel: `55${ddd}${num}`, chatId: `55${ddd}${num}@c.us` };\n};\n\nconst { tel, chatId } = formatPhone(data.phone);\n\nreturn [{ json: {\n  ...data,\n  phone_clean: tel,\n  phone_waha: chatId,\n  cpf_clean: (data.cpf || '').replace(/\\D/g, ''),\n  due_date: new Date(Date.now() + 86400000).toISOString().slice(0, 10),\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1568,
+        1392
+      ],
+      "id": "f681d89f-72fc-486e-8968-61eace657983",
+      "name": "Inscr: Sanitizar"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "eventosamadeus",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1776,
+        1392
+      ],
+      "id": "a8024365-66f9-45e8-9431-28883d2c3e39",
+      "name": "Inscr: Webhook",
+      "webhookId": "amadeus-eventosamadeus"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "eventospagamentos2026",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1776,
+        1984
+      ],
+      "id": "a40357ee-e464-451b-aa5e-6d44681c2b07",
+      "name": "Notif: Webhook",
+      "webhookId": "amadeus-eventospagamentos"
+    },
+    {
+      "parameters": {
+        "jsCode": " const d = $input.first().json.body;\n\n  const inscricaoId = d?.payment?.externalReference;\n\n  // Só processa se o externalReference for um UUID (sistema de eventos).\n  // Pagamentos do financeiro antigo (AMADEUS_FINANCEIRO...) caem fora.\n  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i\n    .test(inscricaoId || '');\n\n  const isValid =\n    ['PAYMENT_RECEIVED', 'PAYMENT_CONFIRMED'].includes(d?.event) &&\n    ['RECEIVED', 'CONFIRMED'].includes(d?.payment?.status) &&\n    d?.payment?.value > 0 &&\n    isUuid;\n\n  let shouldProcess = true;\n  if (d?.payment?.billingType === 'CREDIT_CARD') {\n    const n = d?.payment?.installmentNumber || 1;\n    shouldProcess = n === 1;\n  }\n\n  if (!isValid || !shouldProcess || !inscricaoId) {\n    let motivo = 'sem inscricaoId';\n    if (inscricaoId && !isUuid) motivo = 'pagamento de outro sistema (não é evento)';\n    else if (!isValid) motivo = 'evento inválido';\n    else if (!shouldProcess) motivo = 'parcela > 1';\n    return [{ json: { skip: true, motivo } }];\n  }\n\n  return [{ json: {\n    skip: false,\n    inscricaoId,\n    asaasPaymentId: d.payment.id,\n    amount: d.payment.value,\n    billingType: d.payment.billingType,\n  } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1568,
+        1984
+      ],
+      "id": "d46f4dd8-8452-4943-86df-9ef5b031a01e",
+      "name": "Notif: Validar"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.asaas.com/api/v3/payments",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "access_token",
+              "value": "__ASAAS_TOKEN_REMOVIDO__"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "=  {\n    \"customer\": \"{{ $('Inscr: Asaas Customer').first().json.id }}\",\n    \"billingType\": \"CREDIT_CARD\",\n    \"value\": {{ $('Inscr: Sanitizar').first().json.amount }},\n    \"dueDate\": \"{{ $('Inscr: Sanitizar').first().json.due_date }}\",\n    \"installmentCount\": {{ $('Inscr: Sanitizar').first().json.installments }},\n    \"installmentValue\": {{ ($('Inscr: Sanitizar').first().json.amount / $('Inscr: Sanitizar').first().json.installments).toFixed(2) }},\n    \"externalReference\": \"{{ $('Inscr: Sanitizar').first().json.inscricaoId }}\",\n    \"description\": \"{{ $('Inscr: Sanitizar').first().json.event }} - {{ $('Inscr: Sanitizar').first().json.studentName }}\"\n  }\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -976,
+        1488
+      ],
+      "id": "e787ffa2-6232-45c4-acfc-924a66325cff",
+      "name": "Inscr: Asaas Cartao"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.asaas.com/api/v3/payments",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "access_token",
+              "value": "__ASAAS_TOKEN_REMOVIDO__"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "= {\n    \"customer\": \"{{ $('Inscr: Asaas Customer').first().json.id }}\",\n    \"billingType\": \"PIX\",\n    \"value\": {{ $('Inscr: Sanitizar').first().json.amount }},\n    \"dueDate\": \"{{ $('Inscr: Sanitizar').first().json.due_date }}\",\n    \"externalReference\": \"{{ $('Inscr: Sanitizar').first().json.inscricaoId }}\",\n    \"description\": \"{{ $('Inscr: Sanitizar').first().json.event }} - {{ $('Inscr: Sanitizar').first().json.studentName }}\"\n  }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -976,
+        1280
+      ],
+      "id": "db11641d-1220-4b71-a287-831211574260",
+      "name": "Inscr: Asaas PIX"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-1",
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEqual"
+              }
+            },
+            {
+              "id": "70b06516-f11f-4c47-9ca7-dfb6dbe827e9",
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1376,
+        1984
+      ],
+      "id": "84fb055b-ce59-491b-8abd-28f7681d1f82",
+      "name": "Notif: Continuar?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"ok\": true,\n  \"skipped\": true,\n  \"motivo\": \"{{ $json.motivo }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -1168,
+        1936
+      ],
+      "id": "6e1852f5-bca7-4d72-99e6-f81918398b17",
+      "name": "Notif: Respond Skip"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "alunos",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $('Notif: Buscar Inscricao').item.json.aluno_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -768,
+        2080
+      ],
+      "id": "7b49aabc-18c8-4ea4-9fc2-667b6de05ca1",
+      "name": "Notif: Buscar Aluno",
+      "credentials": {
+        "supabaseApi": {
+          "id": "lCseGlHlzCUJ9cu3",
+          "name": "SEA - HUB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const inscricao = $('Notif: Buscar Inscricao').item.json;\nconst evento = $('Notif: Buscar Evento').item.json;\nconst aluno = $('Notif: Buscar Aluno').item.json;\n\n// Telefone formato WAHA\nconst formatPhone = (raw) => {\n  let d = (raw || '').toString().replace(/\\D/g, '');\n  if (d.startsWith('55') && d.length > 11) d = d.substring(2);\n  let ddd, num;\n  if (d.length <= 9) { ddd = '84'; num = d; }\n  else { ddd = d.substring(0, 2); num = d.substring(2); }\n  if (num.length === 9 && num.startsWith('9')) num = num.substring(1);\n  return `55${ddd}${num}@c.us`;\n};\nconst phoneWaha = formatPhone(inscricao.telefone);\n\n// Prefixo do token baseado no slug do evento\nconst eventoShort = (evento.slug || 'EVT').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);\nconst gerarToken = () => {\n  const ts = Date.now().toString(36).toUpperCase();\n  const rnd = Math.random().toString(36).substring(2, 8).toUpperCase();\n  return `AMZ-${eventoShort}-${ts}-${rnd}`;\n};\n\n// Loop pelos itens da inscrição, gera 1 ticket por senha\nconst tickets = [];\nlet ordem = 0;\nconst itens = inscricao.itens || [];\nfor (const item of itens) {\n  const qtd = item.qtd || 1;\n  for (let i = 0; i < qtd; i++) {\n    ordem += 1;\n    const token = gerarToken();\n    tickets.push({\n      inscricao_id: inscricao.id,\n      evento_id: inscricao.evento_id,\n      tipo_ingresso_id: item.tipo_id || null,\n      nome_tipo: item.nome || 'Senha',\n      preco_unitario: Number(item.preco_unitario || 0),\n      ordem,\n      token,\n      qr_url: `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(token)}&size=500x500&margin=10`,\n      aluno_nome: aluno?.nome_completo || null,\n      phone_waha: phoneWaha,\n      _evento_nome: evento.nome,\n      _aluno_serie: aluno?.serie || '',\n      _aluno_turma: aluno?.turma || '',\n      _responsavel_nome: inscricao.responsavel_nome,\n    });\n  }\n}\n\nif (tickets.length === 0) {\n  throw new Error('Inscrição sem itens — nenhum ticket pra gerar');\n}\n\nreturn tickets.map(t => ({ json: t }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -576,
+        2080
+      ],
+      "id": "4ec47ccf-cc38-4bcc-a78d-d9888439c23b",
+      "name": "Notif: Gerar Tickets"
+    },
+    {
+      "parameters": {
+        "tableId": "tickets",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "inscricao_id",
+              "fieldValue": "={{ $json.inscricao_id }}"
+            },
+            {
+              "fieldId": "evento_id",
+              "fieldValue": "={{ $json.evento_id }}"
+            },
+            {
+              "fieldId": "tipo_ingresso_id",
+              "fieldValue": "={{ $json.tipo_ingresso_id }}"
+            },
+            {
+              "fieldId": "nome_tipo",
+              "fieldValue": "={{ $json.nome_tipo }}"
+            },
+            {
+              "fieldId": "preco_unitario",
+              "fieldValue": "={{ $json.preco_unitario }}"
+            },
+            {
+              "fieldId": "ordem",
+              "fieldValue": "={{ $json.ordem }}"
+            },
+            {
+              "fieldId": "token",
+              "fieldValue": "={{ $json.token }}"
+            },
+            {
+              "fieldId": "qr_url",
+              "fieldValue": "={{ $json.qr_url }}"
+            },
+            {
+              "fieldId": "aluno_nome",
+              "fieldValue": "={{ $json.aluno_nome }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        2080
+      ],
+      "id": "4d83b07d-3622-4c2b-8067-dfb368e330d7",
+      "name": "Notif: Insert Tickets",
+      "retryOnFail": false,
+      "executeOnce": false,
+      "alwaysOutputData": false,
+      "credentials": {
+        "supabaseApi": {
+          "id": "lCseGlHlzCUJ9cu3",
+          "name": "SEA - HUB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://eventos.escolaamadeus.com/api/inscricoes/confirmar",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Webhook-Secret",
+              "value": "1d3321952567de9e6c58e7fdbd6f23c01f7757495c19bc527fa21905a35fff95"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "= {\n    \"inscricaoId\": \"{{ $('Notif: Gerar Tickets').first().json.inscricao_id }}\",\n    \"status\": \"pago\",\n    \"asaasPaymentId\": \"{{ $('Notif: Validar').first().json.asaasPaymentId }}\"\n  }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -176,
+        2080
+      ],
+      "id": "d5086c96-dd0a-4ff9-9043-e65408197960",
+      "name": "Notif: Marcar Pago",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://eventos.escolaamadeus.com/api/inscricoes/etapa",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Webhook-Secret",
+              "value": "1d3321952567de9e6c58e7fdbd6f23c01f7757495c19bc527fa21905a35fff95"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "=\n  {\n    \"inscricaoId\": \"{{ $('Notif: Validar').first().json.inscricaoId }}\",\n    \"etapa\": \"qrcode\",\n    \"sucesso\": true\n  }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1232,
+        2080
+      ],
+      "id": "30acb735-66ba-4da2-b1ac-9e029e09f9f5",
+      "name": "Notif: Etapa QR ok",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "  // ============================================\n  // GERADOR DE QR CODES — sistema novo (genérico)\n  // 1 ticket por senha, lendo os \"itens\" da inscrição\n  // ============================================\n  const inscricao = $('Notif: Buscar Inscricao').first().json;\n  const evento    = $('Notif: Buscar Evento').first().json;\n  const aluno     = $('Notif: Buscar Aluno').first().json;\n\n  // Telefone -> formato WAHA: 55DDDNNNNNNNN@c.us (sem o 9 extra)\n  const formatPhone = (raw) => {\n    let d = (raw || '').toString().replace(/\\D/g, '');\n    if (d.startsWith('55') && d.length > 11) d = d.substring(2);\n    let ddd, num;\n    if (d.length <= 9) { ddd = '84'; num = d; }\n    else { ddd = d.substring(0, 2); num = d.substring(2); }\n    if (num.length === 9 && num.startsWith('9')) num = num.substring(1);\n    return `55${ddd}${num}@c.us`;\n  };\n  const phoneWaha = formatPhone(inscricao.telefone);\n\n  // Token único, com prefixo do slug do evento\n  const eventoShort = (evento.slug || 'EVT').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);\n  const gerarToken = () => {\n    const ts  = Date.now().toString(36).toUpperCase();\n    const rnd = Math.random().toString(36).substring(2, 8).toUpperCase();\n    return `AMZ-${eventoShort}-${ts}-${rnd}`;\n  };\n\n  // Loop pelos itens da inscrição (cada item = um tipo com qtd)\n  const itens = (inscricao.itens || []).filter(it => (it.qtd || 0) > 0);\n  const totalIngressos = itens.reduce((s, it) => s + (it.qtd || 0), 0);\n  if (totalIngressos < 1) {\n    throw new Error('Inscrição sem ingressos — nada pra gerar');\n  }\n\n  const tickets = [];\n  let ordem = 0;\n\n  for (const item of itens) {\n    const qtd = item.qtd || 0;\n    for (let i = 1; i <= qtd; i++) {\n      ordem++;\n      const senhaLabel = `Senha ${ordem} de ${totalIngressos}`;\n      const token = gerarToken();\n      const dadosQR = `${aluno.nome_completo || ''} | ${item.nome} | ${token}`;\n      tickets.push({ json: {\n        // --- colunas da tabela tickets ---\n        inscricao_id:     inscricao.id,\n        evento_id:        inscricao.evento_id,\n        tipo_ingresso_id: item.tipo_id || null,\n        nome_tipo:        item.nome || 'Senha',\n        preco_unitario:   Number(item.preco_unitario || 0),\n        ordem,\n        token,\n        qr_url: `https://api.qrserver.com/v1/create-qr-code/?size=400x400&format=png&data=${encodeURIComponent(dadosQR)}`,\n        status:           'ativo',\n        aluno_nome:       aluno.nome_completo || '',\n        // --- extras pra mensagem / WAHA (não vão pro banco) ---\n        phone_waha:       phoneWaha,\n        evento:           (evento.nome || '').trim(),\n        numero_senha:     ordem,\n        total_senhas:     totalIngressos,\n        senha_label:      senhaLabel,\n        descricao:        item.nome || 'Senha',\n      }});\n    }\n  }\n\n  return tickets;\n"
+      },
+      "name": "Gerar_Tokens",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        2080
+      ],
+      "id": "7cc3318a-76ff-4371-a875-dd5dd1942b7d"
+    },
+    {
+      "parameters": {
+        "jsCode": " const inscricao = $('Notif: Buscar Inscricao').first().json;\n  const aluno     = $('Notif: Buscar Aluno').first().json;\n  const evento    = $('Notif: Buscar Evento').first().json;\n\n  // Telefone -> formato WAHA: 55DDDNNNNNNNN@c.us\n  const formatPhone = (raw) => {\n    let d = (raw || '').toString().replace(/\\D/g, '');\n    if (d.startsWith('55') && d.length > 11) d = d.substring(2);\n    let ddd, num;\n    if (d.length <= 9) { ddd = '84'; num = d; }\n    else { ddd = d.substring(0, 2); num = d.substring(2); }\n    if (num.length === 9 && num.startsWith('9')) num = num.substring(1);\n    return `55${ddd}${num}@c.us`;\n  };\n  const phoneWaha = formatPhone(inscricao.telefone);\n\n  // Monta as linhas de senhas a partir dos itens da inscrição\n  const itens = inscricao.itens || [];\n  let total = 0;\n  const linhas = itens\n    .filter(it => (it.qtd || 0) > 0)\n    .map(it => {\n      const q = it.qtd || 0;\n      total += q;\n      return `• ${q > 1 ? q + 'x ' : ''}${(it.nome || 'Senha').trim()}`;\n    })\n    .join('\\n');\n\n  const nomeEvento = (evento.nome || '').trim();\n  const nomeAluno  = (aluno.nome_completo || '').trim();\n\n  const texto =\n  `🎉 *Pagamento confirmado!*\n\n  *${nomeEvento}*\n  Aluno(a): ${nomeAluno}\n\n  ✅ ${total} ${total === 1 ? 'senha confirmada' : 'senhas confirmadas'}\n\n\n Qualquer dúvida, estamos à disposição! 💙\n Escola Amadeus`;\n\n  return [{ json: { texto, phone_waha: phoneWaha } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        32,
+        2080
+      ],
+      "id": "85765920-11ea-4171-be4d-44f9f2a527d5",
+      "name": "Notif: Montar Texto"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "eventos",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $('Notif: Buscar Inscricao').item.json.evento_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -976,
+        2080
+      ],
+      "id": "36cf808a-ab8e-44a0-a12e-072ff623fd0e",
+      "name": "Notif: Buscar Evento",
+      "credentials": {
+        "supabaseApi": {
+          "id": "lCseGlHlzCUJ9cu3",
+          "name": "SEA - HUB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "inscricoes",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.inscricaoId }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1168,
+        2080
+      ],
+      "id": "7e0307ff-7589-47c9-8e0e-5529f76a90c8",
+      "name": "Notif: Buscar Inscricao",
+      "credentials": {
+        "supabaseApi": {
+          "id": "lCseGlHlzCUJ9cu3",
+          "name": "SEA - HUB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://eventos.escolaamadeus.com/api/inscricoes/etapa",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Webhook-Secret",
+              "value": "1d3321952567de9e6c58e7fdbd6f23c01f7757495c19bc527fa21905a35fff95"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "= {\n    \"inscricaoId\": \"{{ $('Notif: Validar').first().json.inscricaoId }}\",\n    \"etapa\": \"confirmacao\",\n    \"sucesso\": true\n  }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        432,
+        2080
+      ],
+      "id": "b4afa2e8-30fb-4cd4-b4b7-801e40562938",
+      "name": "Notif: Etapa Confirmacao ok"
+    },
+    {
+      "parameters": {
+        "content": "## PROCESSA PAGAMENTO\n",
+        "height": 672,
+        "width": 1792
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1904,
+        1232
+      ],
+      "typeVersion": 1,
+      "id": "64eb4dd2-9327-46fa-bc96-b1c6a88027ba",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## CONFIRMAR PAGAMENTO\n",
+        "height": 672,
+        "width": 3824
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1904,
+        1936
+      ],
+      "typeVersion": 1,
+      "id": "701141bd-6fb7-449d-a868-a74bc6c7cd39",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "8b1f7f07-5425-4bf2-9f71-2214cff38a67",
+              "leftValue": "={{ $('Notif: Buscar Evento').item.json.nome }}",
+              "rightValue": "=OBMEP",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        640,
+        2080
+      ],
+      "id": "16702c08-ad17-473c-a0bd-62fb8dadb548",
+      "name": "If"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Inscr: PIX ou Cartao?1": {
+      "main": [
+        [
+          {
+            "node": "Inscr: Asaas PIX",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Inscr: Asaas Cartao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inscr: Merge1": {
+      "main": [
+        [
+          {
+            "node": "Inscr: Montar Resposta1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log: Cobranca Criada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inscr: Montar Resposta1": {
+      "main": [
+        [
+          {
+            "node": "Inscr: Respond1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar_QRCode": {
+      "main": [
+        [
+          {
+            "node": "Notif: Etapa QR ok",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar_Confirmacao": {
+      "main": [
+        [
+          {
+            "node": "Notif: Etapa Confirmacao ok",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inscr: Asaas Customer": {
+      "main": [
+        [
+          {
+            "node": "Inscr: PIX ou Cartao?1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log: Cliente Asaas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inscr: Sanitizar": {
+      "main": [
+        [
+          {
+            "node": "Inscr: Asaas Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inscr: Webhook": {
+      "main": [
+        [
+          {
+            "node": "Inscr: Sanitizar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notif: Webhook": {
+      "main": [
+        [
+          {
+            "node": "Notif: Validar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notif: Validar": {
+      "main": [
+        [
+          {
+            "node": "Notif: Continuar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inscr: Asaas Cartao": {
+      "main": [
+        [
+          {
+            "node": "Inscr: Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Inscr: Asaas PIX": {
+      "main": [
+        [
+          {
+            "node": "Inscr: Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notif: Continuar?": {
+      "main": [
+        [
+          {
+            "node": "Notif: Respond Skip",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notif: Buscar Inscricao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notif: Buscar Aluno": {
+      "main": [
+        [
+          {
+            "node": "Notif: Gerar Tickets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notif: Gerar Tickets": {
+      "main": [
+        [
+          {
+            "node": "Notif: Insert Tickets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notif: Insert Tickets": {
+      "main": [
+        [
+          {
+            "node": "Notif: Marcar Pago",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log: Tickets Gerados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notif: Marcar Pago": {
+      "main": [
+        [
+          {
+            "node": "Notif: Montar Texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notif: Etapa QR ok": {
+      "main": [
+        [
+          {
+            "node": "Notif: Respond Sucesso1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar_Tokens": {
+      "main": [
+        [
+          {
+            "node": "Enviar_QRCode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notif: Montar Texto": {
+      "main": [
+        [
+          {
+            "node": "Enviar_Confirmacao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notif: Buscar Evento": {
+      "main": [
+        [
+          {
+            "node": "Notif: Buscar Aluno",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notif: Buscar Inscricao": {
+      "main": [
+        [
+          {
+            "node": "Notif: Buscar Evento",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log: Notificacao Recebida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notif: Etapa Confirmacao ok": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Gerar_Tokens",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notif: Respond Sucesso1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "f313293c-0015-4c3d-be6e-9ced35357514",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ed6c9f56b80fbffea7e37962c8917580a380804ec8f6410c5c03cabeb9deb95c"
+  },
+  "id": "Y9o8xQ279tNJY1PV",
+  "tags": []
+}

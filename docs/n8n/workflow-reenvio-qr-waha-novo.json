@@ -1,0 +1,607 @@
+{
+  "name": "Reenvio QR Codes",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## REENVIO DE QR CODES\n\nWorkflow disparado pelo site quando o admin clica em \"Reenviar QR\" numa inscrição já paga.\n\n**Antes de ativar:**\n1. Configure as credenciais:\n   - **Supabase** (SEA - HUB) nos 4 nós de busca\n   - **WAHA** (WAHA account) nos 3 nós WAHA\n2. Ajuste a URL no nó `Marcar QR Reenviado` se necessário (https://SEU-SITE/api/inscricoes/confirmar)\n3. Ative o workflow\n4. Copie a URL de produção do nó `Webhook` e coloque em `N8N_REENVIO_QR_URL` no .env do site",
+        "height": 320,
+        "width": 480
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -2400,
+        -200
+      ],
+      "typeVersion": 1,
+      "id": "11111111-1111-1111-1111-111111111111",
+      "name": "Sticky Instrucoes"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "reenvio-qr",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -2400,
+        200
+      ],
+      "id": "22222222-2222-2222-2222-222222222222",
+      "name": "Webhook",
+      "webhookId": "amadeus-reenvio-qr"
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json.body;\nconst inscricaoId = d?.inscricaoId;\nconst isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(inscricaoId || '');\nif (!isUuid) {\n  throw new Error('inscricaoId ausente ou inválido');\n}\nreturn [{ json: { inscricaoId, adminEmail: d?.adminEmail || 'admin' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2200,
+        200
+      ],
+      "id": "33333333-3333-3333-3333-333333333333",
+      "name": "Validar"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "inscricoes",
+        "returnAll": false,
+        "limit": 1,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Validar').first().json.inscricaoId }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -2000,
+        200
+      ],
+      "id": "44444444-4444-4444-4444-444444444444",
+      "name": "Buscar Inscricao",
+      "credentials": {
+        "supabaseApi": {
+          "id": "lCseGlHlzCUJ9cu3",
+          "name": "SEA - HUB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "eventos",
+        "returnAll": false,
+        "limit": 1,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Buscar Inscricao').item.json.evento_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1800,
+        100
+      ],
+      "id": "55555555-5555-5555-5555-555555555555",
+      "name": "Buscar Evento",
+      "credentials": {
+        "supabaseApi": {
+          "id": "lCseGlHlzCUJ9cu3",
+          "name": "SEA - HUB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "alunos",
+        "returnAll": false,
+        "limit": 1,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Buscar Inscricao').item.json.aluno_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1800,
+        300
+      ],
+      "id": "66666666-6666-6666-6666-666666666666",
+      "name": "Buscar Aluno",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "lCseGlHlzCUJ9cu3",
+          "name": "SEA - HUB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "tickets",
+        "returnAll": true,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "inscricao_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Validar').first().json.inscricaoId }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1800,
+        500
+      ],
+      "id": "77777777-7777-7777-7777-777777777777",
+      "name": "Buscar Tickets",
+      "credentials": {
+        "supabaseApi": {
+          "id": "lCseGlHlzCUJ9cu3",
+          "name": "SEA - HUB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const inscricao = $('Buscar Inscricao').first().json;\n\nlet d = (inscricao.telefone || '').toString().replace(/\\D/g, '');\nif (d.startsWith('55') && d.length > 11) d = d.substring(2);\n\nlet ddd, num;\nif (d.length <= 9) { ddd = '84'; num = d; }\nelse { ddd = d.substring(0, 2); num = d.substring(2); }\n\nconst numSemNove = (num.length === 9 && num.startsWith('9')) ? num.substring(1) : num;\n\nreturn [{ json: {\n  raw: inscricao.telefone,\n  phoneSemNove: `55${ddd}${numSemNove}`,\n  phoneComNove: `55${ddd}9${numSemNove}`,\n  chatIdSemNove: `55${ddd}${numSemNove}@c.us`,\n  chatIdComNove: `55${ddd}9${numSemNove}@c.us`,\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1500,
+        300
+      ],
+      "id": "88888888-8888-8888-8888-888888888888",
+      "name": "Formatar Telefone"
+    },
+    {
+      "parameters": {
+        "resource": "chatting",
+        "operation": "Check Number Status",
+        "session": "=amadeus",
+        "phone": "={{ $json.phoneSemNove }}"
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        -1300,
+        300
+      ],
+      "id": "99999999-9999-9999-9999-999999999999",
+      "name": "Check Sem 9",
+      "credentials": {
+        "wahaApi": {
+          "id": "Wa5n1cK3Gl4WH4bW",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "exists-cond",
+              "leftValue": "={{ $json.numberExists }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1100,
+        300
+      ],
+      "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "name": "Existe sem 9?"
+    },
+    {
+      "parameters": {
+        "resource": "chatting",
+        "operation": "Check Number Status",
+        "session": "=amadeus",
+        "phone": "={{ $('Formatar Telefone').first().json.phoneComNove }}"
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        -900,
+        400
+      ],
+      "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+      "name": "Check Com 9",
+      "credentials": {
+        "wahaApi": {
+          "id": "Wa5n1cK3Gl4WH4bW",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const tel = $('Formatar Telefone').first().json;\nconst checkSem = $('Check Sem 9').first().json;\n\nlet checkCom = null;\ntry {\n  checkCom = $('Check Com 9').first().json;\n} catch {\n  // No 'Check Com 9' nao executou (caminho TRUE do IF). Esperado.\n}\n\nlet chatId = null;\nlet formato = null;\n\nif (checkSem?.numberExists) {\n  chatId = tel.chatIdSemNove;\n  formato = 'sem9';\n} else if (checkCom?.numberExists) {\n  chatId = tel.chatIdComNove;\n  formato = 'com9';\n}\n\nif (!chatId) {\n  throw new Error(`Numero ${tel.raw} nao tem WhatsApp registrado.`);\n}\n\nreturn [{ json: { chatId, formato, phoneRaw: tel.raw } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -700,
+        300
+      ],
+      "id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+      "name": "Resolver chatId"
+    },
+    {
+      "parameters": {
+        "jsCode": "const inscricao = $('Buscar Inscricao').first().json;\nconst aluno     = $('Buscar Aluno').first().json;\nconst evento    = $('Buscar Evento').first().json;\nconst phoneWaha = $('Resolver chatId').first().json.chatId;\n\nconst itens = inscricao.itens || [];\nlet total = 0;\nconst linhas = itens\n  .filter(it => (it.qtd || 0) > 0)\n  .map(it => {\n    const q = it.qtd || 0;\n    total += q;\n    return `• ${q > 1 ? q + 'x ' : ''}${(it.nome || 'Senha').trim()}`;\n  })\n  .join('\\n');\n\nconst nomeEvento = (evento.nome || '').trim();\nconst nomeAluno  = (aluno?.nome_completo || inscricao.responsavel_nome || '').trim();\n\nconst texto =\n`🔁 *Reenvio dos seus QR Codes*\n\n  *${nomeEvento}*\n  Aluno(a): ${nomeAluno}\n\n  ✅ ${total} ${total === 1 ? 'senha' : 'senhas'}\n\n A seguir, os QR Codes pra entrada no evento. 💙\n Escola Amadeus`;\n\nreturn [{ json: { texto, phone_waha: phoneWaha } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -500,
+        300
+      ],
+      "id": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+      "name": "Montar Texto Reenvio"
+    },
+    {
+      "parameters": {
+        "resource": "chatting",
+        "operation": "Send Text",
+        "session": "=amadeus",
+        "chatId": "={{ $json.phone_waha }}",
+        "text": "={{ $json.texto }}",
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        -300,
+        300
+      ],
+      "id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+      "name": "Enviar Texto Reenvio",
+      "credentials": {
+        "wahaApi": {
+          "id": "Wa5n1cK3Gl4WH4bW",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const inscricao = $('Buscar Inscricao').first().json;\nconst evento = $('Buscar Evento').first().json;\nconst aluno  = $('Buscar Aluno').first().json;\nconst phoneWaha = $('Resolver chatId').first().json.chatId;\n\nlet tickets = [];\ntry {\n  tickets = $('Buscar Tickets').all().map(i => i.json);\n} catch {\n  // Buscar Tickets sem resultado — esperado em inscrição nova.\n}\n\nif (tickets.length === 0) {\n  // Inscrição sem tickets: gera QRs novos na hora (mesma lógica do fluxo principal)\n  const eventoShort = (evento.slug || 'EVT').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);\n  const gerarToken = () => {\n    const ts = Date.now().toString(36).toUpperCase();\n    const rnd = Math.random().toString(36).substring(2, 8).toUpperCase();\n    return 'AMZ-' + eventoShort + '-' + ts + '-' + rnd;\n  };\n\n  const itens = (inscricao.itens || []).filter(it => (it.qtd || 0) > 0);\n  let ordem = 0;\n  for (const item of itens) {\n    for (let i = 0; i < (item.qtd || 0); i++) {\n      ordem++;\n      const token = gerarToken();\n      const dadosQR = (aluno?.nome_completo || inscricao.responsavel_nome || '') + ' | ' + (item.nome || 'Senha') + ' | ' + token;\n      tickets.push({\n        nome_tipo: item.nome || 'Senha',\n        ordem,\n        token,\n        qr_url: 'https://api.qrserver.com/v1/create-qr-code/?size=400x400&format=png&data=' + encodeURIComponent(dadosQR),\n      });\n    }\n  }\n  if (tickets.length === 0) {\n    throw new Error('Inscrição sem itens e sem tickets — nada pra enviar.');\n  }\n}\n\nconst total = tickets.length;\nreturn tickets\n  .sort((a, b) => (a.ordem || 0) - (b.ordem || 0))\n  .map((t, i) => ({ json: {\n    phone_waha:   phoneWaha,\n    qr_url:       t.qr_url,\n    token:        t.token,\n    nome_tipo:    t.nome_tipo,\n    ordem:        t.ordem || i + 1,\n    senha_label:  'Senha ' + (t.ordem || i + 1) + ' de ' + total,\n    evento_nome:  (evento.nome || '').trim(),\n    aluno_nome:   aluno?.nome_completo || inscricao.responsavel_nome || '',\n    aluno_serie:  aluno?.serie || '',\n    evento_data:  evento.data_evento || '',\n    evento_local: evento.local || '',\n  }}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -100,
+        300
+      ],
+      "id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+      "name": "Gerar Items QR"
+    },
+    {
+      "parameters": {
+        "resource": "chatting",
+        "operation": "Send Image",
+        "session": "=amadeus",
+        "chatId": "={{ $json.phone_waha }}",
+        "file": "={\n  \"mimetype\": \"image/png\",\n  \"filename\": \"qrcode.png\",\n  \"url\": \"{{ $json.qr_url }}\"\n}",
+        "caption": "=💙 {{ $json.evento_nome }}\n\n  🎟️ Senha: *{{ $json.senha_label }}*\n  👤 Aluno: *{{ $json.aluno_nome }}*{{ $json.aluno_serie ? ' (' + $json.aluno_serie + ')' : '' }}\n  📅 Data: *{{ ($json.evento_data || '').split('-').reverse().join('/') }}*\n  📍 Local: *{{ $json.evento_local }}*\n\n  Apresente este QR Code na entrada do evento. ✨",
+        "requestOptions": {}
+      },
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        100,
+        300
+      ],
+      "id": "10101010-1010-1010-1010-101010101010",
+      "name": "Enviar QR Reenvio",
+      "credentials": {
+        "wahaApi": {
+          "id": "Wa5n1cK3Gl4WH4bW",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://YOUR-SITE-URL/api/inscricoes/confirmar",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Webhook-Secret",
+              "value": "1d3321952567de9e6c58e7fdbd6f23c01f7757495c19bc527fa21905a35fff95"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"inscricaoId\": \"{{ $('Validar').first().json.inscricaoId }}\",\n  \"etapa\": \"qrcode\",\n  \"sucesso\": true,\n  \"mensagem\": \"Reenvio manual disparado por {{ $('Validar').first().json.adminEmail }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        300,
+        300
+      ],
+      "id": "20202020-2020-2020-2020-202020202020",
+      "name": "Marcar QR Reenviado",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"ok\": true,\n  \"inscricaoId\": \"{{ $('Validar').first().json.inscricaoId }}\",\n  \"totalQRs\": {{ $('Gerar Items QR').all().length }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        500,
+        300
+      ],
+      "id": "30303030-3030-3030-3030-303030303030",
+      "name": "Respond Sucesso"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar": {
+      "main": [
+        [
+          {
+            "node": "Buscar Inscricao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Inscricao": {
+      "main": [
+        [
+          {
+            "node": "Buscar Evento",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Buscar Aluno",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Buscar Tickets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Evento": {
+      "main": [
+        [
+          {
+            "node": "Formatar Telefone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Aluno": {
+      "main": [
+        [
+          {
+            "node": "Formatar Telefone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Tickets": {
+      "main": [
+        [
+          {
+            "node": "Formatar Telefone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Telefone": {
+      "main": [
+        [
+          {
+            "node": "Check Sem 9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Sem 9": {
+      "main": [
+        [
+          {
+            "node": "Existe sem 9?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Existe sem 9?": {
+      "main": [
+        [
+          {
+            "node": "Resolver chatId",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Com 9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Com 9": {
+      "main": [
+        [
+          {
+            "node": "Resolver chatId",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolver chatId": {
+      "main": [
+        [
+          {
+            "node": "Montar Texto Reenvio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar Texto Reenvio": {
+      "main": [
+        [
+          {
+            "node": "Enviar Texto Reenvio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar Texto Reenvio": {
+      "main": [
+        [
+          {
+            "node": "Gerar Items QR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar Items QR": {
+      "main": [
+        [
+          {
+            "node": "Enviar QR Reenvio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar QR Reenvio": {
+      "main": [
+        [
+          {
+            "node": "Marcar QR Reenviado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar QR Reenviado": {
+      "main": [
+        [
+          {
+            "node": "Respond Sucesso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

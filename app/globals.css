@@ -1,0 +1,124 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+:root {
+  /* NEEL brand — laranja pôr do sol.
+     Os tokens mantêm o nome "amadeus-*" por compatibilidade (centenas de
+     classNames). Aqui só mudam os VALORES: azul → laranja, amarelo → âmbar. */
+  --amadeus-blue: #c2410c;
+  --amadeus-blue-dark: #9a3412;
+  --amadeus-blue-light: #ea580c;
+  --amadeus-blue-50: #fff1e6;
+  --amadeus-blue-100: #fddcc4;
+  --amadeus-yellow: #f59e0b;
+  --amadeus-yellow-dark: #b45309;
+  --amadeus-yellow-light: #fbbf24;
+  --amadeus-yellow-50: #fef3e2;
+  --amadeus-yellow-100: #fde9c8;
+
+  /* Semantic */
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #c2410c;
+  --primary: #c2410c;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --accent: #f59e0b;
+  --accent-foreground: #0f172a;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --success: #16a34a;
+  --warning: #f59e0b;
+
+  --radius: 1rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+
+  /* NEEL brand utilities (nomes amadeus-* mantidos por compatibilidade) */
+  --color-amadeus-blue: var(--amadeus-blue);
+  --color-amadeus-blue-dark: var(--amadeus-blue-dark);
+  --color-amadeus-blue-light: var(--amadeus-blue-light);
+  --color-amadeus-blue-50: var(--amadeus-blue-50);
+  --color-amadeus-blue-100: var(--amadeus-blue-100);
+  --color-amadeus-yellow: var(--amadeus-yellow);
+  --color-amadeus-yellow-dark: var(--amadeus-yellow-dark);
+  --color-amadeus-yellow-light: var(--amadeus-yellow-light);
+  --color-amadeus-yellow-50: var(--amadeus-yellow-50);
+  --color-amadeus-yellow-100: var(--amadeus-yellow-100);
+
+  --font-sans: var(--font-dm-sans);
+  --font-display: var(--font-dm-sans);
+
+  --radius-sm: calc(var(--radius) - 0.5rem);
+  --radius-md: calc(var(--radius) - 0.25rem);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 0.5rem);
+  --radius-2xl: calc(var(--radius) + 1rem);
+  --radius-3xl: calc(var(--radius) + 1.5rem);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Impressão — margens da página e cores fiéis */
+@media print {
+  @page {
+    margin: 1.4cm;
+  }
+  body {
+    background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* Soft floating shadow utility (ClassDojo-style) */
+@utility shadow-float {
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 0.04),
+    0 10px 25px -5px rgb(27 59 124 / 0.08),
+    0 20px 40px -10px rgb(27 59 124 / 0.06);
+}
+
+@utility shadow-float-lg {
+  box-shadow:
+    0 8px 16px -4px rgb(0 0 0 / 0.06),
+    0 20px 40px -8px rgb(27 59 124 / 0.12),
+    0 30px 60px -15px rgb(27 59 124 / 0.08);
+}

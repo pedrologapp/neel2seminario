@@ -1,0 +1,950 @@
+{
+  "name": "Amadeus Cobranca Avulsa",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cobrancaavulsa",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1776,
+        400
+      ],
+      "id": "av-criar-webhook-0001",
+      "name": "Avulsa: Webhook",
+      "webhookId": "amadeus-cobrancaavulsa"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sanitiza telefone pro formato WAHA: 55DDDNNNNNNNN@c.us (sem 9 extra)\nconst data = $input.first().json.body;\n\nconst formatPhone = (raw) => {\n  let d = (raw || '').toString().replace(/\\D/g, '');\n  if (d.startsWith('55') && d.length > 11) d = d.substring(2);\n  let ddd, num;\n  if (d.length <= 9) { ddd = '84'; num = d; }\n  else { ddd = d.substring(0, 2); num = d.substring(2); }\n  if (num.length === 9 && num.startsWith('9')) num = num.substring(1);\n  return { tel: `55${ddd}${num}`, chatId: `55${ddd}${num}@c.us` };\n};\n\nconst { tel, chatId } = formatPhone(data.phone);\n\nreturn [{ json: {\n  ...data,\n  phone_clean: tel,\n  phone_waha: chatId,\n  cpf_clean: (data.cpf || '').replace(/\\D/g, ''),\n  due_date: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10),\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1568,
+        400
+      ],
+      "id": "av-criar-sanitizar-001",
+      "name": "Avulsa: Sanitizar"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.asaas.com/api/v3/customers",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "access_token",
+              "value": "__ASAAS_TOKEN_REMOVIDO__"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"name\": \"{{ $json.parentName }}\",\n  \"cpfCnpj\": \"{{ $json.cpf_clean }}\",\n  \"mobilePhone\": \"{{ $json.phone_clean }}\",\n  \"externalReference\": \"{{ $json.externalReference }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1376,
+        400
+      ],
+      "id": "av-criar-customer-0001",
+      "name": "Avulsa: Asaas Customer"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Monta o body da cobrança conforme o método escolhido no admin:\n// 'undefined' = link aberto | 'pix' = só PIX | 'credit' = cartão parcelado.\n// valorTotal já vem com juros repassados (calculado no site).\nconst d = $('Avulsa: Sanitizar').first().json;\nconst customerId = $input.first().json.id;\n\nconst total = Number(d.valorTotal || d.amount);\n\nconst body = {\n  customer: customerId,\n  value: total,\n  dueDate: d.due_date,\n  externalReference: d.externalReference,\n  description: `${d.descricao} - ${d.studentName}`,\n};\n\nif (d.paymentMethod === 'pix') {\n  body.billingType = 'PIX';\n} else if (d.paymentMethod === 'credit') {\n  body.billingType = 'CREDIT_CARD';\n  const n = Number(d.installments || 1);\n  if (n > 1) {\n    body.installmentCount = n;\n    body.installmentValue = Number((total / n).toFixed(2));\n  }\n} else {\n  body.billingType = 'UNDEFINED';\n}\n\nreturn [{ json: { asaas_body: body } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1264,
+        400
+      ],
+      "id": "av-criar-montarcob-1",
+      "name": "Avulsa: Montar Cobranca"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.asaas.com/api/v3/payments",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "access_token",
+              "value": "__ASAAS_TOKEN_REMOVIDO__"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.asaas_body) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1168,
+        400
+      ],
+      "id": "av-criar-cobranca-001",
+      "name": "Avulsa: Asaas Cobranca"
+    },
+    {
+      "parameters": {
+        "jsCode": "const a = $input.first().json;\nreturn [{ json: {\n  success: true,\n  paymentUrl: a.invoiceUrl || a.bankSlipUrl || '',\n  asaasPaymentId: a.id,\n  asaasCustomerId: a.customer,\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -976,
+        400
+      ],
+      "id": "av-criar-resposta-001",
+      "name": "Avulsa: Montar Resposta"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -768,
+        304
+      ],
+      "id": "av-criar-respond-0001",
+      "name": "Avulsa: Respond"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $('Avulsa: Sanitizar').first().json.phone;\n\nlet d = (raw || '').toString().replace(/\\D/g, '');\nif (d.startsWith('55') && d.length > 11) d = d.substring(2);\n\nlet ddd, num;\nif (d.length <= 9) { ddd = '84'; num = d; }\nelse { ddd = d.substring(0, 2); num = d.substring(2); }\n\nconst numSemNove = (num.length === 9 && num.startsWith('9')) ? num.substring(1) : num;\n\nreturn [{ json: {\n  raw,\n  phoneSemNove: `55${ddd}${numSemNove}`,\n  phoneComNove: `55${ddd}9${numSemNove}`,\n  chatIdSemNove: `55${ddd}${numSemNove}@c.us`,\n  chatIdComNove: `55${ddd}9${numSemNove}@c.us`,\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -768,
+        496
+      ],
+      "id": "av-criar-fmttel-00001",
+      "name": "Avulsa: Formatar Telefone"
+    },
+    {
+      "parameters": {
+        "resource": "Contacts",
+        "operation": "Check Exists",
+        "session": "=amadeus",
+        "phone": "={{ $json.phoneSemNove }}",
+        "requestOptions": {}
+      },
+      "name": "Avulsa: Check Sem 9",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        -576,
+        496
+      ],
+      "id": "av-criar-chksem9-0001",
+      "credentials": {
+        "wahaApi": {
+          "id": "Wa5n1cK3Gl4WH4bW",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "av-if-existe-cond1",
+              "leftValue": "={{ $json.numberExists }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -384,
+        496
+      ],
+      "id": "av-criar-ifexiste-001",
+      "name": "Avulsa: If Existe"
+    },
+    {
+      "parameters": {
+        "resource": "Contacts",
+        "operation": "Check Exists",
+        "session": "=amadeus",
+        "phone": "={{ $('Avulsa: Formatar Telefone').first().json.phoneComNove }}",
+        "requestOptions": {}
+      },
+      "name": "Avulsa: Check Com 9",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        -384,
+        688
+      ],
+      "id": "av-criar-chkcom9-0001",
+      "credentials": {
+        "wahaApi": {
+          "id": "Wa5n1cK3Gl4WH4bW",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -192,
+        496
+      ],
+      "id": "av-criar-merge-00001",
+      "name": "Avulsa: Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const semNove = $('Avulsa: Formatar Telefone').first().json;\nconst checkSem = $('Avulsa: Check Sem 9').first().json;\n\nlet checkCom = null;\ntry {\n  checkCom = $('Avulsa: Check Com 9').first().json;\n} catch {\n  // Não executou (sem 9 deu true) — esperado.\n}\n\nlet chatId = null;\nlet formato = null;\n\nif (checkSem?.numberExists) {\n  chatId = checkSem.chatId || semNove.chatIdSemNove;\n  formato = 'sem9';\n} else if (checkCom?.numberExists) {\n  chatId = checkCom.chatId || semNove.chatIdComNove;\n  formato = 'com9';\n} else {\n  // O check do WAHA retorna false intermitente sob carga.\n  // Em vez de travar o fluxo, usa o formato sem 9 (padrão BR) e segue.\n  chatId = semNove.chatIdSemNove;\n  formato = 'fallback-sem9';\n}\n\nreturn [{ json: { chatId, formato, phoneRaw: semNove.raw } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        496
+      ],
+      "id": "av-criar-resolver-001",
+      "name": "Avulsa: Resolver chatId"
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $('Avulsa: Sanitizar').first().json;\nconst resp = $('Avulsa: Montar Resposta').first().json;\nconst chatId = $('Avulsa: Resolver chatId').first().json.chatId;\n\nconst brl = (v) => Number(v).toLocaleString('pt-BR', {\n  style: 'currency', currency: 'BRL',\n});\n\nconst total = Number(d.valorTotal || d.amount);\nconst n = Number(d.installments || 1);\n\nlet linhaPagamento;\nif (d.paymentMethod === 'pix') {\n  linhaPagamento = `💠 Pagamento via PIX: *${brl(total)}*`;\n} else if (d.paymentMethod === 'credit') {\n  linhaPagamento = n > 1\n    ? `💳 Cartão em *${n}x de ${brl(total / n)}* (total ${brl(total)})`\n    : `💳 Cartão à vista: *${brl(total)}*`;\n} else {\n  linhaPagamento = `💳 Pague por PIX ou cartão: *${brl(total)}*`;\n}\n\nconst texto = `🧾 *Escola Amadeus*\n\nOlá, ${d.parentName}!\nSegue a cobrança referente a:\n\n*${d.descricao}*\nAluno(a): ${d.studentName} (${d.studentGrade} · Turma ${d.studentClass})\n\n${linhaPagamento}\n\nLink de pagamento:\n${resp.paymentUrl}\n\nQualquer dúvida, fale com a secretaria. 💙`;\n\nreturn [{ json: { chatId, texto } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        496
+      ],
+      "id": "av-criar-msglink-0001",
+      "name": "Avulsa: Montar Msg Link"
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Text",
+        "session": "=amadeus",
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.texto }}",
+        "requestOptions": {}
+      },
+      "name": "Avulsa: Enviar Link",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        384,
+        496
+      ],
+      "id": "av-criar-envlink-0001",
+      "credentials": {
+        "wahaApi": {
+          "id": "Wa5n1cK3Gl4WH4bW",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## COBRANÇA AVULSA — CRIAR\nSite chama /webhook/cobrancaavulsa → cria cliente + cobrança UNDEFINED no Asaas (pagador escolhe PIX/cartão) → responde paymentUrl pro site → envia o link no WhatsApp.",
+        "height": 672,
+        "width": 2432
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1904,
+        240
+      ],
+      "typeVersion": 1,
+      "id": "av-sticky-criar-0001",
+      "name": "Sticky Avulsa Criar"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cobrancaavulsapagamentos",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1776,
+        1200
+      ],
+      "id": "av-notif-webhook-0001",
+      "name": "AvulsaNotif: Webhook",
+      "webhookId": "amadeus-cobrancaavulsapagamentos"
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json.body;\n\nconst ref = d?.payment?.externalReference || '';\n\n// Só processa cobranças avulsas (prefixo avulsa_).\n// Inscrições de eventos (UUID puro) e financeiro antigo caem fora.\nconst isAvulsa = ref.startsWith('avulsa_');\n\nconst isValid =\n  ['PAYMENT_RECEIVED', 'PAYMENT_CONFIRMED'].includes(d?.event) &&\n  ['RECEIVED', 'CONFIRMED'].includes(d?.payment?.status) &&\n  d?.payment?.value > 0 &&\n  isAvulsa;\n\nlet shouldProcess = true;\nif (d?.payment?.billingType === 'CREDIT_CARD') {\n  const n = d?.payment?.installmentNumber || 1;\n  shouldProcess = n === 1;\n}\n\nif (!isValid || !shouldProcess) {\n  let motivo = 'não é cobrança avulsa';\n  if (isAvulsa && !shouldProcess) motivo = 'parcela > 1';\n  else if (isAvulsa) motivo = 'evento inválido';\n  return [{ json: { skip: true, motivo } }];\n}\n\nreturn [{ json: {\n  skip: false,\n  cobrancaId: ref.substring('avulsa_'.length),\n  asaasPaymentId: d.payment.id,\n  amount: d.payment.value,\n  billingType: d.payment.billingType,\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1568,
+        1200
+      ],
+      "id": "av-notif-validar-0001",
+      "name": "AvulsaNotif: Validar"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "av-notif-skip-cond1",
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1376,
+        1200
+      ],
+      "id": "av-notif-continuar-01",
+      "name": "AvulsaNotif: Skip?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"ok\": true,\n  \"skipped\": true,\n  \"motivo\": \"{{ $json.motivo }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -1168,
+        1104
+      ],
+      "id": "av-notif-respskip-001",
+      "name": "AvulsaNotif: Respond Skip"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "cobrancas_avulsas",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.cobrancaId }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1168,
+        1296
+      ],
+      "id": "av-notif-buscar-00001",
+      "name": "AvulsaNotif: Buscar Cobranca",
+      "credentials": {
+        "supabaseApi": {
+          "id": "lCseGlHlzCUJ9cu3",
+          "name": "SEA - HUB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://eventos.escolaamadeus.com/api/cobrancas/confirmar",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Webhook-Secret",
+              "value": "1d3321952567de9e6c58e7fdbd6f23c01f7757495c19bc527fa21905a35fff95"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"cobrancaId\": \"{{ $('AvulsaNotif: Validar').first().json.cobrancaId }}\",\n  \"status\": \"pago\",\n  \"asaasPaymentId\": \"{{ $('AvulsaNotif: Validar').first().json.asaasPaymentId }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -976,
+        1296
+      ],
+      "id": "av-notif-marcarpago-1",
+      "name": "AvulsaNotif: Marcar Pago",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const cobranca = $('AvulsaNotif: Buscar Cobranca').first().json;\n\nlet d = (cobranca.telefone || '').toString().replace(/\\D/g, '');\nif (d.startsWith('55') && d.length > 11) d = d.substring(2);\n\nlet ddd, num;\nif (d.length <= 9) { ddd = '84'; num = d; }\nelse { ddd = d.substring(0, 2); num = d.substring(2); }\n\nconst numSemNove = (num.length === 9 && num.startsWith('9')) ? num.substring(1) : num;\n\nreturn [{ json: {\n  raw: cobranca.telefone,\n  phoneSemNove: `55${ddd}${numSemNove}`,\n  phoneComNove: `55${ddd}9${numSemNove}`,\n  chatIdSemNove: `55${ddd}${numSemNove}@c.us`,\n  chatIdComNove: `55${ddd}9${numSemNove}@c.us`,\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -768,
+        1296
+      ],
+      "id": "av-notif-fmttel-00001",
+      "name": "AvulsaNotif: Formatar Telefone"
+    },
+    {
+      "parameters": {
+        "resource": "Contacts",
+        "operation": "Check Exists",
+        "session": "=amadeus",
+        "phone": "={{ $json.phoneSemNove }}",
+        "requestOptions": {}
+      },
+      "name": "AvulsaNotif: Check Sem 9",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        -576,
+        1296
+      ],
+      "id": "av-notif-chksem9-0001",
+      "credentials": {
+        "wahaApi": {
+          "id": "Wa5n1cK3Gl4WH4bW",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "av-notif-existe-cond1",
+              "leftValue": "={{ $json.numberExists }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -384,
+        1296
+      ],
+      "id": "av-notif-ifexiste-001",
+      "name": "AvulsaNotif: If Existe"
+    },
+    {
+      "parameters": {
+        "resource": "Contacts",
+        "operation": "Check Exists",
+        "session": "=amadeus",
+        "phone": "={{ $('AvulsaNotif: Formatar Telefone').first().json.phoneComNove }}",
+        "requestOptions": {}
+      },
+      "name": "AvulsaNotif: Check Com 9",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        -384,
+        1488
+      ],
+      "id": "av-notif-chkcom9-0001",
+      "credentials": {
+        "wahaApi": {
+          "id": "Wa5n1cK3Gl4WH4bW",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -192,
+        1296
+      ],
+      "id": "av-notif-merge-00001",
+      "name": "AvulsaNotif: Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const semNove = $('AvulsaNotif: Formatar Telefone').first().json;\nconst checkSem = $('AvulsaNotif: Check Sem 9').first().json;\n\nlet checkCom = null;\ntry {\n  checkCom = $('AvulsaNotif: Check Com 9').first().json;\n} catch {\n  // Não executou (sem 9 deu true) — esperado.\n}\n\nlet chatId = null;\nlet formato = null;\n\nif (checkSem?.numberExists) {\n  chatId = checkSem.chatId || semNove.chatIdSemNove;\n  formato = 'sem9';\n} else if (checkCom?.numberExists) {\n  chatId = checkCom.chatId || semNove.chatIdComNove;\n  formato = 'com9';\n} else {\n  // O check do WAHA retorna false intermitente sob carga.\n  // Em vez de travar o fluxo, usa o formato sem 9 (padrão BR) e segue.\n  chatId = semNove.chatIdSemNove;\n  formato = 'fallback-sem9';\n}\n\nreturn [{ json: { chatId, formato, phoneRaw: semNove.raw } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        1296
+      ],
+      "id": "av-notif-resolver-001",
+      "name": "AvulsaNotif: Resolver chatId"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cobranca = $('AvulsaNotif: Buscar Cobranca').first().json;\nconst chatId = $('AvulsaNotif: Resolver chatId').first().json.chatId;\n\nconst valor = Number(cobranca.valor_total || cobranca.valor).toLocaleString('pt-BR', {\n  style: 'currency', currency: 'BRL',\n});\n\nconst texto = `✅ *Pagamento confirmado!*\n\n*${cobranca.descricao}*\nValor: ${valor}\n\nObrigado, ${cobranca.responsavel_nome}! 💙\n\n— Escola Amadeus`;\n\nreturn [{ json: { chatId, texto } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        1296
+      ],
+      "id": "av-notif-msgconf-0001",
+      "name": "AvulsaNotif: Montar Texto"
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Text",
+        "session": "=amadeus",
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.texto }}",
+        "requestOptions": {}
+      },
+      "name": "AvulsaNotif: Enviar Confirmacao",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        384,
+        1296
+      ],
+      "id": "av-notif-envconf-0001",
+      "credentials": {
+        "wahaApi": {
+          "id": "Wa5n1cK3Gl4WH4bW",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"ok\": true }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        576,
+        1296
+      ],
+      "id": "av-notif-respond-0001",
+      "name": "AvulsaNotif: Respond"
+    },
+    {
+      "parameters": {
+        "content": "## COBRANÇA AVULSA — CONFIRMAR PAGAMENTO\nAsaas notifica → só processa externalReference com prefixo avulsa_ → marca pago no site → envia confirmação no WhatsApp (sem QR codes).\n⚠️ Cadastrar este webhook também no Asaas: /webhook/cobrancaavulsapagamentos",
+        "height": 672,
+        "width": 2752
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1904,
+        1040
+      ],
+      "typeVersion": 1,
+      "id": "av-sticky-notif-0001",
+      "name": "Sticky Avulsa Notif"
+    }
+  ],
+  "connections": {
+    "Avulsa: Webhook": {
+      "main": [
+        [
+          {
+            "node": "Avulsa: Sanitizar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avulsa: Sanitizar": {
+      "main": [
+        [
+          {
+            "node": "Avulsa: Asaas Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avulsa: Asaas Customer": {
+      "main": [
+        [
+          {
+            "node": "Avulsa: Montar Cobranca",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avulsa: Montar Cobranca": {
+      "main": [
+        [
+          {
+            "node": "Avulsa: Asaas Cobranca",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avulsa: Asaas Cobranca": {
+      "main": [
+        [
+          {
+            "node": "Avulsa: Montar Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avulsa: Montar Resposta": {
+      "main": [
+        [
+          {
+            "node": "Avulsa: Respond",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Avulsa: Formatar Telefone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avulsa: Formatar Telefone": {
+      "main": [
+        [
+          {
+            "node": "Avulsa: Check Sem 9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avulsa: Check Sem 9": {
+      "main": [
+        [
+          {
+            "node": "Avulsa: If Existe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avulsa: If Existe": {
+      "main": [
+        [
+          {
+            "node": "Avulsa: Merge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Avulsa: Check Com 9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avulsa: Check Com 9": {
+      "main": [
+        [
+          {
+            "node": "Avulsa: Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Avulsa: Merge": {
+      "main": [
+        [
+          {
+            "node": "Avulsa: Resolver chatId",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avulsa: Resolver chatId": {
+      "main": [
+        [
+          {
+            "node": "Avulsa: Montar Msg Link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avulsa: Montar Msg Link": {
+      "main": [
+        [
+          {
+            "node": "Avulsa: Enviar Link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AvulsaNotif: Webhook": {
+      "main": [
+        [
+          {
+            "node": "AvulsaNotif: Validar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AvulsaNotif: Validar": {
+      "main": [
+        [
+          {
+            "node": "AvulsaNotif: Skip?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AvulsaNotif: Skip?": {
+      "main": [
+        [
+          {
+            "node": "AvulsaNotif: Respond Skip",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AvulsaNotif: Buscar Cobranca",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AvulsaNotif: Buscar Cobranca": {
+      "main": [
+        [
+          {
+            "node": "AvulsaNotif: Marcar Pago",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AvulsaNotif: Marcar Pago": {
+      "main": [
+        [
+          {
+            "node": "AvulsaNotif: Formatar Telefone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AvulsaNotif: Formatar Telefone": {
+      "main": [
+        [
+          {
+            "node": "AvulsaNotif: Check Sem 9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AvulsaNotif: Check Sem 9": {
+      "main": [
+        [
+          {
+            "node": "AvulsaNotif: If Existe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AvulsaNotif: If Existe": {
+      "main": [
+        [
+          {
+            "node": "AvulsaNotif: Merge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AvulsaNotif: Check Com 9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AvulsaNotif: Check Com 9": {
+      "main": [
+        [
+          {
+            "node": "AvulsaNotif: Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "AvulsaNotif: Merge": {
+      "main": [
+        [
+          {
+            "node": "AvulsaNotif: Resolver chatId",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AvulsaNotif: Resolver chatId": {
+      "main": [
+        [
+          {
+            "node": "AvulsaNotif: Montar Texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AvulsaNotif: Montar Texto": {
+      "main": [
+        [
+          {
+            "node": "AvulsaNotif: Enviar Confirmacao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AvulsaNotif: Enviar Confirmacao": {
+      "main": [
+        [
+          {
+            "node": "AvulsaNotif: Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": []
+}
