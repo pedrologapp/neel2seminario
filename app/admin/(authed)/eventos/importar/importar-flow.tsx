@@ -66,7 +66,7 @@ function FormImportar({ action, state, isPending }: FormImportarProps) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Sparkles className="size-5 text-amadeus-yellow-dark" />
+          <Sparkles className="size-5 text-neel-yellow-dark" />
           Importar com IA
         </CardTitle>
         <CardDescription>
@@ -112,11 +112,11 @@ Crianças são isentas.
           ) : (
             <label
               htmlFor="pdf-input"
-              className="grid cursor-pointer place-items-center rounded-2xl border-2 border-dashed border-amadeus-blue/30 bg-amadeus-blue-50/30 py-12 transition-colors hover:border-amadeus-blue/60"
+              className="grid cursor-pointer place-items-center rounded-2xl border-2 border-dashed border-neel-blue/30 bg-neel-blue-50/30 py-12 transition-colors hover:border-neel-blue/60"
             >
               <div className="text-center">
-                <Upload className="mx-auto size-8 text-amadeus-blue" />
-                <p className="mt-3 text-sm font-semibold text-amadeus-blue">
+                <Upload className="mx-auto size-8 text-neel-blue" />
+                <p className="mt-3 text-sm font-semibold text-neel-blue">
                   {pdfFile ? pdfFile.name : "Clique para escolher o PDF"}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -183,8 +183,8 @@ function TabButton({
       onClick={onClick}
       className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${
         active
-          ? "bg-amadeus-blue text-white shadow-float"
-          : "border border-amadeus-blue/30 text-amadeus-blue hover:bg-amadeus-blue-50"
+          ? "bg-neel-blue text-white shadow-float"
+          : "border border-neel-blue/30 text-neel-blue hover:bg-neel-blue-50"
       }`}
     >
       {children}
@@ -232,6 +232,8 @@ function FormDepoisExtracao({ dados, createAction }: FormDepoisExtracaoProps) {
           destinacao_valores: dados.destinacao_valores,
           infos_importantes: dados.infos_importantes,
           mostrar_estoque_publico: false,
+          palestrantes: [],
+          contatos: [],
         }}
         initialTipos={dados.tipos_ingresso.map((t) => ({
           nome: t.nome,

@@ -121,7 +121,7 @@ export default async function EventoDetailPage({ params }: PageProps) {
     <div className="container mx-auto px-4 py-10">
       <Link
         href="/admin/eventos"
-        className="inline-flex items-center gap-1 text-sm font-semibold text-amadeus-blue hover:underline"
+        className="inline-flex items-center gap-1 text-sm font-semibold text-neel-blue hover:underline"
       >
         <ChevronLeft className="size-4" />
         Voltar para eventos
@@ -131,7 +131,7 @@ export default async function EventoDetailPage({ params }: PageProps) {
       <header className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-extrabold tracking-tight text-amadeus-blue sm:text-4xl">
+            <h1 className="text-3xl font-extrabold tracking-tight text-neel-blue sm:text-4xl">
               {evento.nome}
             </h1>
             <Badge variant={status.variant}>{status.label}</Badge>
@@ -445,11 +445,11 @@ function MetricCard({
           <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             {label}
           </div>
-          <div className="mt-1 text-2xl font-extrabold text-amadeus-blue">
+          <div className="mt-1 text-2xl font-extrabold text-neel-blue">
             {value}
           </div>
         </div>
-        <div className="grid size-10 place-items-center rounded-2xl bg-amadeus-blue-50 text-amadeus-blue">
+        <div className="grid size-10 place-items-center rounded-2xl bg-neel-blue-50 text-neel-blue">
           <Icon className="size-5" />
         </div>
       </CardContent>
@@ -468,7 +468,7 @@ function Info({
 }) {
   return (
     <div className="flex items-start gap-3">
-      <Icon className="mt-0.5 size-4 shrink-0 text-amadeus-blue" />
+      <Icon className="mt-0.5 size-4 shrink-0 text-neel-blue" />
       <div>
         <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {label}
@@ -481,7 +481,7 @@ function Info({
 
 function KV({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-border/60 bg-amadeus-blue-50/30 p-3">
+    <div className="rounded-2xl border border-border/60 bg-neel-blue-50/30 p-3">
       <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </div>

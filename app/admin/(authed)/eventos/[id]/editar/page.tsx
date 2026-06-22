@@ -16,7 +16,7 @@ export default async function EditarEventoPage({ params }: PageProps) {
   const { data: evento } = await supabase
     .from("eventos")
     .select(
-      "id, nome, descricao_curta, descricao_longa, data_evento, hora_evento, local, imagem_capa_url, cor_tematica, metodos_pagamento, max_parcelas, prazo_inscricao, status, destinacao_valores, infos_importantes, mostrar_estoque_publico, tipos_ingresso(id, nome, preco, descricao, ordem, lotes, max_ingressos)",
+      "id, nome, descricao_curta, descricao_longa, data_evento, hora_evento, local, imagem_capa_url, cor_tematica, metodos_pagamento, max_parcelas, prazo_inscricao, status, destinacao_valores, infos_importantes, mostrar_estoque_publico, palestrantes, contatos, tipos_ingresso(id, nome, preco, descricao, ordem, lotes, max_ingressos, opcional, grupo)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -32,6 +32,8 @@ export default async function EditarEventoPage({ params }: PageProps) {
       descricao: t.descricao,
       max_ingressos:
         (t as { max_ingressos?: number | null }).max_ingressos ?? null,
+      opcional: (t as { opcional?: boolean | null }).opcional ?? false,
+      grupo: (t as { grupo?: string | null }).grupo ?? null,
       lotes: ((t as { lotes?: unknown }).lotes ?? []) as {
         nome: string;
         preco: number;
@@ -46,12 +48,12 @@ export default async function EditarEventoPage({ params }: PageProps) {
     <div className="container mx-auto max-w-3xl px-4 py-10">
       <Link
         href={`/admin/eventos/${evento.id}`}
-        className="inline-flex items-center gap-1 text-sm font-semibold text-amadeus-blue hover:underline"
+        className="inline-flex items-center gap-1 text-sm font-semibold text-neel-blue hover:underline"
       >
         <ChevronLeft className="size-4" />
         Voltar para o evento
       </Link>
-      <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-amadeus-blue sm:text-4xl">
+      <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-neel-blue sm:text-4xl">
         Editar evento
       </h1>
       <p className="mt-1 text-muted-foreground">
@@ -77,6 +79,12 @@ export default async function EditarEventoPage({ params }: PageProps) {
             destinacao_valores: evento.destinacao_valores,
             infos_importantes: evento.infos_importantes,
             mostrar_estoque_publico: evento.mostrar_estoque_publico ?? false,
+            palestrantes:
+              (evento as {
+                palestrantes?: { nome: string; foto_url: string | null }[] | null;
+              }).palestrantes ?? [],
+            contatos:
+              (evento as { contatos?: string[] | null }).contatos ?? [],
           }}
           initialTipos={tipos}
           submitAction={updateBound}

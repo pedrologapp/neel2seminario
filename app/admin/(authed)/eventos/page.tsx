@@ -89,7 +89,7 @@ export default async function AdminEventosPage() {
     <div className="container mx-auto px-4 py-10">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-amadeus-blue sm:text-4xl">
+          <h1 className="text-3xl font-extrabold tracking-tight text-neel-blue sm:text-4xl">
             Eventos
           </h1>
           <p className="mt-1 text-muted-foreground">

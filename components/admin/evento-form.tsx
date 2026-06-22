@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useActionState, useRef, useState } from "react";
+import { startTransition, useActionState, useRef, useState } from "react";
 import {
   AlertCircle,
   ImagePlus,
@@ -42,7 +42,30 @@ type TipoLinha = {
   lotes: LoteLinha[];
 };
 
+// Uma opção dentro de uma venda opcional (ex: "Frango" no grupo "Almoço").
+type OpcaoLinha = {
+  id?: string;
+  nome: string;
+  preco: string;
+  max_ingressos: string; // "" = sem limite
+};
+
+// Uma venda opcional com suas opções (ex: "Almoço" → Frango, Vegetariano).
+type GrupoOpcional = {
+  nome: string;
+  opcoes: OpcaoLinha[];
+};
+
+// Um palestrante no editor: nome + foto (existente e/ou novo arquivo).
+type PalestranteLinha = {
+  nome: string;
+  foto_url: string | null; // foto já salva no banco
+  file: File | null; // novo arquivo selecionado
+  preview: string | null; // o que é exibido (existente ou objectURL do novo)
+};
+
 const NOVO_LOTE: LoteLinha = { nome: "", preco: "", valido_ate: "" };
+const NOVA_OPCAO: OpcaoLinha = { nome: "", preco: "", max_ingressos: "" };
 
 /**
  * Converte ISO UTC vindo do banco para datetime-local em horário de Brasília
@@ -89,6 +112,8 @@ export interface EventoFormInitial {
   destinacao_valores: string | null;
   infos_importantes: string[] | null;
   mostrar_estoque_publico: boolean;
+  palestrantes: { nome: string; foto_url: string | null }[] | null;
+  contatos: string[] | null;
 }
 
 export interface EventoFormTipoInitialLote {
@@ -103,6 +128,8 @@ export interface EventoFormTipoInitial {
   preco: number;
   descricao: string | null;
   max_ingressos: number | null;
+  opcional?: boolean | null;
+  grupo?: string | null;
   lotes?: EventoFormTipoInitialLote[] | null;
 }
 
@@ -128,8 +155,9 @@ export function EventoForm({
   const [state, action, isPending] = useActionState(submitAction, null);
 
   const [tipos, setTipos] = useState<TipoLinha[]>(() => {
-    if (initialTipos && initialTipos.length > 0) {
-      return initialTipos.map((t) => ({
+    const obrigatorios = (initialTipos ?? []).filter((t) => !t.opcional);
+    if (obrigatorios.length > 0) {
+      return obrigatorios.map((t) => ({
         id: t.id,
         nome: t.nome,
         preco: t.preco.toString().replace(".", ","),
@@ -149,6 +177,43 @@ export function EventoForm({
       { nome: "", preco: "", descricao: "", max_ingressos: "", lotes: [] },
     ];
   });
+
+  // Vendas opcionais: reconstrói os grupos a partir dos tipos opcionais,
+  // agrupando pelo rótulo `grupo` (preservando a ordem de chegada).
+  const [grupos, setGrupos] = useState<GrupoOpcional[]>(() => {
+    const opcionais = (initialTipos ?? []).filter((t) => t.opcional);
+    const porGrupo = new Map<string, GrupoOpcional>();
+    for (const t of opcionais) {
+      const chave = t.grupo?.trim() || t.nome;
+      let g = porGrupo.get(chave);
+      if (!g) {
+        g = { nome: chave, opcoes: [] };
+        porGrupo.set(chave, g);
+      }
+      g.opcoes.push({
+        id: t.id,
+        nome: t.nome,
+        preco: t.preco.toString().replace(".", ","),
+        max_ingressos:
+          t.max_ingressos && t.max_ingressos > 0
+            ? t.max_ingressos.toString()
+            : "",
+      });
+    }
+    return Array.from(porGrupo.values());
+  });
+
+  const [palestrantes, setPalestrantes] = useState<PalestranteLinha[]>(() =>
+    (initial?.palestrantes ?? []).map((p) => ({
+      nome: p.nome,
+      foto_url: p.foto_url,
+      file: null,
+      preview: p.foto_url,
+    })),
+  );
+  const [contatosTexto, setContatosTexto] = useState(
+    () => (initial?.contatos ?? []).join("\n"),
+  );
 
   const [imagemPreview, setImagemPreview] = useState<string | null>(
     initial?.imagem_capa_url ?? null,
@@ -196,6 +261,81 @@ export function EventoForm({
   }
   function removeTipo(idx: number) {
     setTipos((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  // ----- Palestrantes -----
+  function addPalestrante() {
+    setPalestrantes((prev) => [
+      ...prev,
+      { nome: "", foto_url: null, file: null, preview: null },
+    ]);
+  }
+  function removePalestrante(idx: number) {
+    setPalestrantes((prev) => prev.filter((_, i) => i !== idx));
+  }
+  function updatePalestranteNome(idx: number, nome: string) {
+    setPalestrantes((prev) =>
+      prev.map((p, i) => (i === idx ? { ...p, nome } : p)),
+    );
+  }
+  function handlePalestranteFoto(idx: number, file: File | null) {
+    setPalestrantes((prev) =>
+      prev.map((p, i) =>
+        i === idx
+          ? {
+              ...p,
+              file,
+              preview: file ? URL.createObjectURL(file) : p.foto_url,
+            }
+          : p,
+      ),
+    );
+  }
+
+  // ----- Vendas opcionais (grupos + opções) -----
+  function addGrupo() {
+    setGrupos((prev) => [
+      ...prev,
+      { nome: "", opcoes: [{ ...NOVA_OPCAO }] },
+    ]);
+  }
+  function removeGrupo(gIdx: number) {
+    setGrupos((prev) => prev.filter((_, i) => i !== gIdx));
+  }
+  function updateGrupoNome(gIdx: number, nome: string) {
+    setGrupos((prev) =>
+      prev.map((g, i) => (i === gIdx ? { ...g, nome } : g)),
+    );
+  }
+  function addOpcao(gIdx: number) {
+    setGrupos((prev) =>
+      prev.map((g, i) =>
+        i === gIdx ? { ...g, opcoes: [...g.opcoes, { ...NOVA_OPCAO }] } : g,
+      ),
+    );
+  }
+  function removeOpcao(gIdx: number, oIdx: number) {
+    setGrupos((prev) =>
+      prev.map((g, i) =>
+        i === gIdx
+          ? { ...g, opcoes: g.opcoes.filter((_, j) => j !== oIdx) }
+          : g,
+      ),
+    );
+  }
+  function updateOpcao(gIdx: number, oIdx: number, patch: Partial<OpcaoLinha>) {
+    setGrupos((prev) =>
+      prev.map((g, i) =>
+        i === gIdx
+          ? {
+              ...g,
+              opcoes: g.opcoes.map((o, j) =>
+                j === oIdx ? { ...o, ...patch } : o,
+              ),
+            }
+          : g,
+      ),
+    );
   }
   function addLote(tipoIdx: number) {
     setTipos((prev) =>
@@ -278,44 +418,107 @@ export function EventoForm({
     }
   }
 
-  async function submit(formData: FormData) {
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
+    // preventDefault + FormData manual: evita o reset automático que o
+    // React 19 faz em <form action={...}>, que apagava tudo quando o
+    // submit dava erro (campos não-controlados voltavam ao defaultValue).
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
     const file = formData.get("imagem_capa");
     if (file instanceof File && file.size > 0) {
       formData.set("imagem_capa", await compressImage(file));
     }
+    // Helper: "" / inválido / <=0 → null (sem limite)
+    const parseMax = (v: string) => {
+      const n = parseInt(v.trim(), 10);
+      return Number.isFinite(n) && n > 0 ? n : null;
+    };
+
+    // Ingressos obrigatórios
+    const obrigatorios = tipos.map((t) => {
+      const lotesParsed = t.lotes.map((l) => ({
+        nome: l.nome.trim(),
+        preco: parseFloat(l.preco.replace(",", ".")) || 0,
+        valido_ate: brtLocalToIsoUtc(l.valido_ate),
+      }));
+      // preco fallback: se houver lotes, usa o do primeiro (cronologicamente
+      // mais cedo); senão usa o preço único informado.
+      const precoFallback =
+        lotesParsed.length > 0
+          ? lotesParsed[0].preco
+          : parseFloat(t.preco.replace(",", ".")) || 0;
+      return {
+        id: t.id,
+        nome: t.nome.trim(),
+        preco: precoFallback,
+        descricao: t.descricao.trim() || null,
+        max_ingressos: parseMax(t.max_ingressos),
+        opcional: false,
+        grupo: null,
+        lotes: lotesParsed,
+      };
+    });
+
+    // Vendas opcionais: cada opção vira um tipo próprio, marcado opcional e
+    // com o rótulo do grupo. Grupos/opções sem nome são descartados.
+    const opcionais = grupos.flatMap((g) => {
+      const nomeGrupo = g.nome.trim();
+      if (!nomeGrupo) return [];
+      return g.opcoes
+        .filter((o) => o.nome.trim().length > 0)
+        .map((o) => ({
+          id: o.id,
+          nome: o.nome.trim(),
+          preco: parseFloat(o.preco.replace(",", ".")) || 0,
+          descricao: null,
+          max_ingressos: parseMax(o.max_ingressos),
+          opcional: true,
+          grupo: nomeGrupo,
+          lotes: [] as { nome: string; preco: number; valido_ate: string | null }[],
+        }));
+    });
+
     formData.set(
       "tipos_ingresso",
-      JSON.stringify(
-        tipos.map((t) => {
-          const lotesParsed = t.lotes.map((l) => ({
-            nome: l.nome.trim(),
-            preco: parseFloat(l.preco.replace(",", ".")) || 0,
-            valido_ate: brtLocalToIsoUtc(l.valido_ate),
-          }));
-          // preco fallback: se houver lotes, usa o do primeiro (cronologicamente
-          // mais cedo); senão usa o preço único informado.
-          const precoFallback =
-            lotesParsed.length > 0
-              ? lotesParsed[0].preco
-              : parseFloat(t.preco.replace(",", ".")) || 0;
-          const maxNum = parseInt(t.max_ingressos.trim(), 10);
-          const maxIngressos =
-            Number.isFinite(maxNum) && maxNum > 0 ? maxNum : null;
-          return {
-            id: t.id,
-            nome: t.nome.trim(),
-            preco: precoFallback,
-            descricao: t.descricao.trim() || null,
-            max_ingressos: maxIngressos,
-            lotes: lotesParsed,
-          };
-        }),
-      ),
+      JSON.stringify([...obrigatorios, ...opcionais]),
     );
+
+    // Palestrantes: anexa as fotos novas (comprimidas) como
+    // palestrante_foto_<i> e serializa nome + foto_url existente. Descarta
+    // palestrantes sem nome.
+    const palestrantesPayload: { nome: string; foto_url: string | null }[] = [];
+    let pIdx = 0;
+    for (const p of palestrantes) {
+      if (!p.nome.trim()) continue;
+      if (p.file) {
+        formData.set(
+          `palestrante_foto_${pIdx}`,
+          await compressImage(p.file),
+        );
+      }
+      palestrantesPayload.push({
+        nome: p.nome.trim(),
+        foto_url: p.foto_url,
+      });
+      pIdx++;
+    }
+    formData.set("palestrantes", JSON.stringify(palestrantesPayload));
+
+    // Contatos: uma linha por número, ignora linhas vazias.
+    const contatos = contatosTexto
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
+    formData.set("contatos", JSON.stringify(contatos));
+
     formData.set("status", publicar ? "publicado" : "rascunho");
     formData.set("remover_imagem", removerImagem ? "1" : "0");
     formData.set("mostrar_estoque_publico", mostrarEstoque ? "1" : "0");
-    action(formData);
+    // Despacha dentro de uma transition para o isPending funcionar e não
+    // disparar o warning do useActionState.
+    startTransition(() => {
+      action(formData);
+    });
   }
 
   const erros = state?.fieldErrors;
@@ -328,7 +531,7 @@ export function EventoForm({
   const infosInicial = initial?.infos_importantes?.join("\n") ?? "";
 
   return (
-    <form action={submit} className="space-y-6">
+    <form onSubmit={submit} className="space-y-6">
       {state?.error && (
         <div className="flex items-start gap-3 rounded-2xl border-2 border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
           <AlertCircle className="size-5 shrink-0" />
@@ -393,6 +596,79 @@ export function EventoForm({
         </CardContent>
       </Card>
 
+      {/* ===== Palestrantes ===== */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Palestrantes</CardTitle>
+              <CardDescription>
+                Quem vai palestrar no evento. A foto aparece na página pública.
+              </CardDescription>
+            </div>
+            <Badge variant="muted">{palestrantes.length}</Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {palestrantes.length === 0 && (
+            <p className="rounded-2xl border border-dashed border-border/70 bg-muted/40 p-4 text-sm text-muted-foreground">
+              Nenhum palestrante cadastrado.
+            </p>
+          )}
+          {palestrantes.map((p, idx) => (
+            <div
+              key={idx}
+              className="flex items-center gap-3 rounded-2xl border border-border/70 bg-white p-3"
+            >
+              <label
+                htmlFor={`palestrante_foto_${idx}`}
+                className="group relative grid size-16 shrink-0 cursor-pointer place-items-center overflow-hidden rounded-full border-2 border-dashed border-input bg-neel-blue-50/30 transition-colors hover:border-neel-blue/40"
+                title="Adicionar/trocar foto"
+              >
+                {p.preview ? (
+                  <Image
+                    src={p.preview}
+                    alt={p.nome || "Palestrante"}
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <ImagePlus className="size-5 text-neel-blue" />
+                )}
+                <input
+                  id={`palestrante_foto_${idx}`}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="sr-only"
+                  onChange={(e) =>
+                    handlePalestranteFoto(idx, e.target.files?.[0] ?? null)
+                  }
+                />
+              </label>
+              <Input
+                placeholder="Nome (ex: Jorge Elarrat (RO))"
+                value={p.nome}
+                onChange={(e) => updatePalestranteNome(idx, e.target.value)}
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => removePalestrante(idx)}
+                title="Remover palestrante"
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            </div>
+          ))}
+          <Button type="button" variant="outline" onClick={addPalestrante}>
+            <Plus />
+            Adicionar palestrante
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* ===== Visual ===== */}
       <Card>
         <CardHeader>
@@ -410,7 +686,7 @@ export function EventoForm({
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
               <label
                 htmlFor="imagem_capa"
-                className="group relative grid h-32 w-full cursor-pointer place-items-center overflow-hidden rounded-2xl border-2 border-dashed border-input bg-amadeus-blue-50/30 transition-colors hover:border-amadeus-blue/40 sm:w-56"
+                className="group relative grid h-32 w-full cursor-pointer place-items-center overflow-hidden rounded-2xl border-2 border-dashed border-input bg-neel-blue-50/30 transition-colors hover:border-neel-blue/40 sm:w-56"
               >
                 {imagemPreview ? (
                   <Image
@@ -420,7 +696,7 @@ export function EventoForm({
                     className="object-cover"
                   />
                 ) : (
-                  <div className="text-center text-amadeus-blue">
+                  <div className="text-center text-neel-blue">
                     <ImagePlus className="mx-auto size-7" />
                     <span className="mt-1 block text-xs font-semibold">
                       {isEdit ? "Trocar imagem" : "Selecionar"}
@@ -502,7 +778,7 @@ export function EventoForm({
                     onChange={(e) => updateTipo(idx, { nome: e.target.value })}
                   />
                   {usaLotes ? (
-                    <div className="grid h-11 place-items-center rounded-xl border border-dashed border-amadeus-blue/30 bg-amadeus-blue-50/40 text-xs font-semibold text-amadeus-blue">
+                    <div className="grid h-11 place-items-center rounded-xl border border-dashed border-neel-blue/30 bg-neel-blue-50/40 text-xs font-semibold text-neel-blue">
                       Por lotes
                     </div>
                   ) : (
@@ -556,10 +832,10 @@ export function EventoForm({
                 </div>
 
                 {/* Lotes */}
-                <div className="mt-4 rounded-xl border border-amadeus-blue/15 bg-amadeus-blue-50/30 p-3">
+                <div className="mt-4 rounded-xl border border-neel-blue/15 bg-neel-blue-50/30 p-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-semibold text-amadeus-blue">
+                      <p className="text-sm font-semibold text-neel-blue">
                         Lotes (preço varia ao longo do tempo)
                       </p>
                       <p className="text-xs text-muted-foreground">
@@ -585,7 +861,7 @@ export function EventoForm({
                       const statuses = computeLoteStatuses(tipo.lotes);
                       return (
                         <div className="mt-3 space-y-2">
-                          <p className="text-xs font-semibold uppercase tracking-wider text-amadeus-blue/70">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-neel-blue/70">
                             {tipo.lotes.length}{" "}
                             {tipo.lotes.length === 1 ? "lote" : "lotes"}{" "}
                             configurado{tipo.lotes.length === 1 ? "" : "s"}
@@ -630,6 +906,134 @@ export function EventoForm({
           <Button type="button" variant="outline" onClick={addTipo}>
             <Plus />
             Adicionar tipo
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* ===== Vendas opcionais ===== */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Vendas opcionais</CardTitle>
+              <CardDescription>
+                Adicionais que o cliente pode escolher na inscrição (ex:
+                almoço). Cada venda pode ter várias opções com preços
+                diferentes.
+              </CardDescription>
+            </div>
+            <Badge variant="muted">{grupos.length}</Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {grupos.length === 0 && (
+            <p className="rounded-2xl border border-dashed border-border/70 bg-muted/40 p-4 text-sm text-muted-foreground">
+              Nenhuma venda opcional. Use isto para oferecer itens extras como
+              almoço, camiseta ou sobremesa — sem obrigar o cliente.
+            </p>
+          )}
+
+          {grupos.map((grupo, gIdx) => (
+            <div
+              key={gIdx}
+              className="rounded-2xl border border-amber-200 bg-amber-50/50 p-4"
+            >
+              <div className="flex items-end gap-3">
+                <div className="flex-1">
+                  <Label className="mb-1 block text-xs">
+                    Nome da venda opcional
+                  </Label>
+                  <Input
+                    placeholder="Ex: Almoço"
+                    value={grupo.nome}
+                    onChange={(e) => updateGrupoNome(gIdx, e.target.value)}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeGrupo(gIdx)}
+                  title="Remover venda opcional"
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
+
+              <div className="mt-3 space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-amber-700/80">
+                  Opções
+                </p>
+                {grupo.opcoes.map((opcao, oIdx) => (
+                  <div
+                    key={oIdx}
+                    className="grid gap-2 rounded-xl border border-amber-200 bg-white p-3 sm:grid-cols-[1fr_120px_120px_auto] sm:items-end"
+                  >
+                    <div>
+                      <Label className="mb-1 block text-xs">Opção</Label>
+                      <Input
+                        placeholder="Ex: Frango"
+                        value={opcao.nome}
+                        onChange={(e) =>
+                          updateOpcao(gIdx, oIdx, { nome: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label className="mb-1 block text-xs">Preço</Label>
+                      <Input
+                        placeholder="R$ 0,00"
+                        inputMode="decimal"
+                        value={opcao.preco}
+                        onChange={(e) =>
+                          updateOpcao(gIdx, oIdx, { preco: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label className="mb-1 block text-xs">Limite</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        step={1}
+                        inputMode="numeric"
+                        placeholder="ilimitado"
+                        value={opcao.max_ingressos}
+                        onChange={(e) =>
+                          updateOpcao(gIdx, oIdx, {
+                            max_ingressos: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeOpcao(gIdx, oIdx)}
+                      disabled={grupo.opcoes.length === 1}
+                      title="Remover opção"
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addOpcao(gIdx)}
+                >
+                  <Plus />
+                  Adicionar opção
+                </Button>
+              </div>
+            </div>
+          ))}
+
+          <Button type="button" variant="outline" onClick={addGrupo}>
+            <Plus />
+            Adicionar venda opcional
           </Button>
         </CardContent>
       </Card>
@@ -738,6 +1142,17 @@ export function EventoForm({
               rows={4}
               placeholder={`Cantina aberta durante o evento\nLevar um agasalho\nAtenção ao prazo final`}
               defaultValue={infosInicial}
+            />
+          </Field>
+          <Field
+            label="Números de contato"
+            hint="Um número por linha. Aparecem no rodapé da página como links de WhatsApp."
+          >
+            <Textarea
+              rows={3}
+              placeholder={`(84) 9 9133-5975\n(84) 9 8804-9371`}
+              value={contatosTexto}
+              onChange={(e) => setContatosTexto(e.target.value)}
             />
           </Field>
         </CardContent>

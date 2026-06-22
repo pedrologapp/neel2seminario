@@ -165,7 +165,7 @@ export function InscricoesTable({ inscricoes }: { inscricoes: InscricaoRow[] }) 
       )}
 
       {lista.length === 0 ? (
-        <div className="grid place-items-center rounded-2xl border-2 border-dashed border-amadeus-blue/20 bg-amadeus-blue-50/30 py-12 text-sm text-muted-foreground">
+        <div className="grid place-items-center rounded-2xl border-2 border-dashed border-neel-blue/20 bg-neel-blue-50/30 py-12 text-sm text-muted-foreground">
           {buscaNorm
             ? `Nenhuma inscrição encontrada para "${busca.trim()}".`
             : aba === "todas"
@@ -281,13 +281,13 @@ function TabPill({
       type="button"
       onClick={onClick}
       className={`inline-flex items-center rounded-xl px-4 py-1.5 text-sm font-semibold transition-colors ${
-        active ? "bg-amadeus-blue text-white shadow-float" : "text-amadeus-blue hover:bg-amadeus-blue-50"
+        active ? "bg-neel-blue text-white shadow-float" : "text-neel-blue hover:bg-neel-blue-50"
       }`}
     >
       {children}
       <span
         className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-          active ? "bg-white/25 text-white" : "bg-amadeus-blue-50 text-amadeus-blue"
+          active ? "bg-white/25 text-white" : "bg-neel-blue-50 text-neel-blue"
         }`}
       >
         {count}
@@ -336,7 +336,7 @@ function ReenviarQRButton({ inscricaoId }: { inscricaoId: string }) {
           type="button"
           onClick={abrirModal}
           disabled={pending}
-          className="inline-flex items-center gap-1 rounded-md border border-amadeus-blue/30 bg-white px-2 py-0.5 text-[10px] font-semibold text-amadeus-blue transition-colors hover:bg-amadeus-blue-50 disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-md border border-neel-blue/30 bg-white px-2 py-0.5 text-[10px] font-semibold text-neel-blue transition-colors hover:bg-neel-blue-50 disabled:opacity-50"
         >
           <RefreshCw className={`size-3 ${pending ? "animate-spin" : ""}`} />
           {pending ? "Reenviando..." : "Reenviar QR"}
@@ -358,7 +358,7 @@ function ReenviarQRButton({ inscricaoId }: { inscricaoId: string }) {
         >
           <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-float-lg">
             <div className="flex items-center justify-between">
-              <h3 className="flex items-center gap-2 text-lg font-extrabold text-amadeus-blue">
+              <h3 className="flex items-center gap-2 text-lg font-extrabold text-neel-blue">
                 <Lock className="size-5" />
                 Confirmar senha
               </h3>
@@ -474,7 +474,7 @@ function ExcluirEmMassaButton({
         >
           <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-float-lg">
             <div className="flex items-center justify-between">
-              <h3 className="flex items-center gap-2 text-lg font-extrabold text-amadeus-blue">
+              <h3 className="flex items-center gap-2 text-lg font-extrabold text-neel-blue">
                 <Lock className="size-5" />
                 Confirmar senha
               </h3>
@@ -585,7 +585,7 @@ function ExcluirInscricaoButton({ inscricaoId }: { inscricaoId: string }) {
         >
           <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-float-lg">
             <div className="flex items-center justify-between">
-              <h3 className="flex items-center gap-2 text-lg font-extrabold text-amadeus-blue">
+              <h3 className="flex items-center gap-2 text-lg font-extrabold text-neel-blue">
                 <Lock className="size-5" />
                 Confirmar senha
               </h3>

@@ -16,7 +16,7 @@ const Switch = React.forwardRef<HTMLInputElement, SwitchProps>(
         htmlFor={inputId}
         className="flex cursor-pointer items-center gap-3"
       >
-        <span className="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full bg-muted transition-colors has-[:checked]:bg-amadeus-blue">
+        <span className="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full bg-muted transition-colors has-[:checked]:bg-neel-blue">
           <input
             ref={ref}
             id={inputId}

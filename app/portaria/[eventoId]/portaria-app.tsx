@@ -74,7 +74,7 @@ export function PortariaApp({
           <ArrowLeft className="size-5" />
         </Link>
         <div className="min-w-0 flex-1">
-          <div className="text-xs font-semibold uppercase tracking-wide text-amadeus-blue">
+          <div className="text-xs font-semibold uppercase tracking-wide text-neel-blue">
             Portaria
           </div>
           <h1 className="truncate text-lg font-extrabold">{evento.nome}</h1>
@@ -131,8 +131,8 @@ function TabPill({
       onClick={onClick}
       className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${
         active
-          ? "bg-amadeus-blue text-white shadow-float"
-          : "text-amadeus-blue hover:bg-amadeus-blue-50"
+          ? "bg-neel-blue text-white shadow-float"
+          : "text-neel-blue hover:bg-neel-blue-50"
       }`}
     >
       {children}
@@ -341,7 +341,7 @@ function PainelPorNome({
                       <div className="truncate font-semibold">{p.nome}</div>
                       <div
                         className={`text-sm font-bold tabular-nums ${
-                          completo ? "text-green-700" : "text-amadeus-blue"
+                          completo ? "text-green-700" : "text-neel-blue"
                         }`}
                       >
                         {p.usadas}/{p.total} {completo && "✓"}
@@ -540,7 +540,7 @@ function ListaTab({
       </div>
 
       {lista.length === 0 ? (
-        <div className="grid place-items-center rounded-2xl border-2 border-dashed border-amadeus-blue/20 bg-white py-12 text-sm text-muted-foreground">
+        <div className="grid place-items-center rounded-2xl border-2 border-dashed border-neel-blue/20 bg-white py-12 text-sm text-muted-foreground">
           {participantes.length === 0
             ? "Nenhum participante com senha neste evento."
             : `Ninguém encontrado para "${busca.trim()}".`}
@@ -564,7 +564,7 @@ function ListaTab({
                     )}
                   <div
                     className={`text-sm font-bold tabular-nums ${
-                      completo ? "text-green-700" : "text-amadeus-blue"
+                      completo ? "text-green-700" : "text-neel-blue"
                     }`}
                   >
                     {p.usadas}/{p.total} {completo && "✓"}
@@ -634,7 +634,7 @@ function ConfirmarManualDialog({
     >
       <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-float-lg">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-extrabold text-amadeus-blue">
+          <h3 className="text-lg font-extrabold text-neel-blue">
             Confirmar entrada
           </h3>
           <button
@@ -650,7 +650,7 @@ function ConfirmarManualDialog({
           Confirmar 1 entrada de:
         </p>
         <p className="mt-1 text-lg font-bold">{participante.nome}</p>
-        <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-amadeus-blue-50 px-3 py-1 text-sm font-bold text-amadeus-blue">
+        <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-neel-blue-50 px-3 py-1 text-sm font-bold text-neel-blue">
           Vai ficar {proximo}/{participante.total}
         </div>
 

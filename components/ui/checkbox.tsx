@@ -17,11 +17,11 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
       <label
         htmlFor={inputId}
         className={cn(
-          "group flex cursor-pointer items-start gap-3 rounded-xl border border-border/70 bg-white p-3 transition-colors hover:border-amadeus-blue/40 has-[:checked]:border-amadeus-blue has-[:checked]:bg-amadeus-blue-50/60",
+          "group flex cursor-pointer items-start gap-3 rounded-xl border border-border/70 bg-white p-3 transition-colors hover:border-neel-blue/40 has-[:checked]:border-neel-blue has-[:checked]:bg-neel-blue-50/60",
           className,
         )}
       >
-        <span className="relative mt-0.5 grid size-5 shrink-0 place-items-center rounded-md border border-input bg-white transition-colors group-has-[:checked]:border-amadeus-blue group-has-[:checked]:bg-amadeus-blue">
+        <span className="relative mt-0.5 grid size-5 shrink-0 place-items-center rounded-md border border-input bg-white transition-colors group-has-[:checked]:border-neel-blue group-has-[:checked]:bg-neel-blue">
           <input
             ref={ref}
             id={inputId}

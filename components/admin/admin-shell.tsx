@@ -41,7 +41,7 @@ export function AdminShell({ userEmail, children }: AdminShellProps) {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-amadeus-blue-50 hover:text-amadeus-blue"
+                    className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-neel-blue-50 hover:text-neel-blue"
                   >
                     <Icone className="size-4" />
                     {link.label}
@@ -75,7 +75,7 @@ export function AdminShell({ userEmail, children }: AdminShellProps) {
               <Link
                 key={link.href}
                 href={link.href}
-                className="flex shrink-0 items-center gap-2 rounded-xl bg-amadeus-blue-50/70 px-3 py-2 text-sm font-semibold text-amadeus-blue"
+                className="flex shrink-0 items-center gap-2 rounded-xl bg-neel-blue-50/70 px-3 py-2 text-sm font-semibold text-neel-blue"
               >
                 <Icone className="size-4" />
                 {link.label}

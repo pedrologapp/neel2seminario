@@ -97,11 +97,11 @@ export default async function RelatorioPage({ params, searchParams }: PageProps)
         {/* Cabeçalho geral: na impressão por tipo ele some — cada
             folha tem o próprio cabeçalho com os números DO tipo. */}
         <header
-          className={`border-b-2 border-amadeus-blue pb-4 ${
+          className={`border-b-2 border-neel-blue pb-4 ${
             modo === "paginas" ? "print:hidden" : ""
           }`}
         >
-          <h1 className="text-2xl font-extrabold text-amadeus-blue">
+          <h1 className="text-2xl font-extrabold text-neel-blue">
             {evento.nome}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -130,7 +130,7 @@ export default async function RelatorioPage({ params, searchParams }: PageProps)
                 key={g.chave}
                 className={[
                   modo === "paginas"
-                    ? "rounded-2xl border-2 border-amadeus-blue/20 bg-white p-6 shadow-sm print:rounded-none print:border-0 print:p-0 print:shadow-none"
+                    ? "rounded-2xl border-2 border-neel-blue/20 bg-white p-6 shadow-sm print:rounded-none print:border-0 print:p-0 print:shadow-none"
                     : "",
                   modo === "paginas" && idx < grupos.length - 1
                     ? "print:break-after-page"
@@ -140,14 +140,14 @@ export default async function RelatorioPage({ params, searchParams }: PageProps)
                   .join(" ")}
               >
                 {modo === "paginas" && (
-                  <div className="-mt-2 mb-3 flex items-center justify-between text-[10px] font-semibold uppercase tracking-widest text-amadeus-blue/60 print:hidden">
+                  <div className="-mt-2 mb-3 flex items-center justify-between text-[10px] font-semibold uppercase tracking-widest text-neel-blue/60 print:hidden">
                     <span>Página {idx + 1} de {grupos.length}</span>
                     <span>Um tipo por página</span>
                   </div>
                 )}
                 {modo === "paginas" && (
-                  <div className="mb-3 hidden border-b-2 border-amadeus-blue pb-2 print:block">
-                    <div className="text-lg font-extrabold text-amadeus-blue">
+                  <div className="mb-3 hidden border-b-2 border-neel-blue pb-2 print:block">
+                    <div className="text-lg font-extrabold text-neel-blue">
                       {evento.nome}
                     </div>
                     <div className="text-xs text-muted-foreground">
@@ -156,7 +156,7 @@ export default async function RelatorioPage({ params, searchParams }: PageProps)
                     </div>
                   </div>
                 )}
-                <h2 className="mb-2 text-base font-extrabold text-amadeus-blue">
+                <h2 className="mb-2 text-base font-extrabold text-neel-blue">
                   {g.tipo}
                   <span className="ml-2 text-sm font-medium text-muted-foreground">
                     ({g.linhas.length} participante(s)

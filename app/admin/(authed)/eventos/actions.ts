@@ -26,6 +26,8 @@ const tipoIngressoSchema = z.object({
   preco: z.number().min(0, "Preço não pode ser negativo"),
   descricao: z.string().optional().nullable(),
   max_ingressos: z.number().int().min(1).nullable().optional(),
+  opcional: z.boolean().optional().default(false),
+  grupo: z.string().trim().min(1).nullable().optional(),
   lotes: z.array(loteSchema).optional().default([]),
 });
 
@@ -46,8 +48,55 @@ const createEventoSchema = z.object({
   destinacao_valores: z.string().optional().nullable(),
   infos_importantes: z.array(z.string()),
   mostrar_estoque_publico: z.boolean().default(false),
+  palestrantes: z
+    .array(
+      z.object({
+        nome: z.string().trim().min(1, "Nome do palestrante obrigatório"),
+        foto_url: z.string().nullable().optional(),
+      }),
+    )
+    .optional()
+    .default([]),
+  contatos: z.array(z.string().trim().min(1)).optional().default([]),
   tipos_ingresso: z.array(tipoIngressoSchema).min(1, "Adicione ao menos um tipo de ingresso"),
 });
+
+type Palestrante = { nome: string; foto_url?: string | null };
+
+/**
+ * Sobe as fotos novas dos palestrantes (anexadas como `palestrante_foto_<i>`)
+ * e devolve a lista com os foto_url atualizados. Mantém a foto existente quando
+ * não há arquivo novo no índice.
+ */
+async function uploadPalestranteFotos(
+  formData: FormData,
+  palestrantes: Palestrante[],
+  nomeEvento: string,
+): Promise<Palestrante[]> {
+  const admin = createAdminClient();
+  const result: Palestrante[] = [];
+  for (let i = 0; i < palestrantes.length; i++) {
+    const p = palestrantes[i];
+    const file = formData.get(`palestrante_foto_${i}`);
+    if (file instanceof File && file.size > 0) {
+      const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+      const fileName = `palestrantes/${Date.now()}-${i}-${slugify(nomeEvento)}.${ext}`;
+      const { error: upErr } = await admin.storage
+        .from("eventos")
+        .upload(fileName, file, { contentType: file.type, upsert: false });
+      if (upErr) {
+        // Falha de foto não derruba o evento — mantém a anterior (ou null).
+        result.push({ nome: p.nome, foto_url: p.foto_url ?? null });
+        continue;
+      }
+      const { data: pub } = admin.storage.from("eventos").getPublicUrl(fileName);
+      result.push({ nome: p.nome, foto_url: pub.publicUrl });
+    } else {
+      result.push({ nome: p.nome, foto_url: p.foto_url ?? null });
+    }
+  }
+  return result;
+}
 
 export type CreateEventoState = {
   error?: string;
@@ -80,6 +129,8 @@ export async function createEvento(
     ),
     mostrar_estoque_publico:
       formData.get("mostrar_estoque_publico")?.toString() === "1",
+    palestrantes: parseJsonArray(formData.get("palestrantes")?.toString()),
+    contatos: parseJsonArray(formData.get("contatos")?.toString()),
     tipos_ingresso: parseTiposIngresso(
       formData.get("tipos_ingresso")?.toString(),
     ),
@@ -124,6 +175,13 @@ export async function createEvento(
     imagemCapaUrl = publicData.publicUrl;
   }
 
+  // Sobe fotos novas dos palestrantes
+  const palestrantes = await uploadPalestranteFotos(
+    formData,
+    data.palestrantes,
+    data.nome,
+  );
+
   // Gerar slug único
   const baseSlug = slugify(data.nome);
   const slug = await ensureUniqueSlug(baseSlug);
@@ -148,6 +206,8 @@ export async function createEvento(
       destinacao_valores: data.destinacao_valores,
       infos_importantes: data.infos_importantes,
       mostrar_estoque_publico: data.mostrar_estoque_publico,
+      palestrantes,
+      contatos: data.contatos,
     })
     .select("id")
     .single();
@@ -165,6 +225,8 @@ export async function createEvento(
     preco: tipo.preco,
     descricao: tipo.descricao,
     max_ingressos: tipo.max_ingressos ?? null,
+    opcional: tipo.opcional,
+    grupo: tipo.grupo ?? null,
     lotes: tipo.lotes ?? [],
     ordem,
     ativo: true,
@@ -210,6 +272,16 @@ function parseTiposIngresso(raw: string | undefined): unknown {
   if (!raw) return [];
   try {
     return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+function parseJsonArray(raw: string | undefined): unknown {
+  if (!raw) return [];
+  try {
+    const v = JSON.parse(raw);
+    return Array.isArray(v) ? v : [];
   } catch {
     return [];
   }
@@ -263,6 +335,8 @@ export async function updateEvento(
     ),
     mostrar_estoque_publico:
       formData.get("mostrar_estoque_publico")?.toString() === "1",
+    palestrantes: parseJsonArray(formData.get("palestrantes")?.toString()),
+    contatos: parseJsonArray(formData.get("contatos")?.toString()),
     tipos_ingresso: parseTiposIngresso(
       formData.get("tipos_ingresso")?.toString(),
     ),
@@ -311,6 +385,13 @@ export async function updateEvento(
     imagemUpdate.imagem_capa_url = null;
   }
 
+  // Sobe fotos novas dos palestrantes (mantém as existentes)
+  const palestrantes = await uploadPalestranteFotos(
+    formData,
+    data.palestrantes,
+    data.nome,
+  );
+
   const { error: updateErr } = await supabase
     .from("eventos")
     .update({
@@ -328,6 +409,8 @@ export async function updateEvento(
       destinacao_valores: data.destinacao_valores,
       infos_importantes: data.infos_importantes,
       mostrar_estoque_publico: data.mostrar_estoque_publico,
+      palestrantes,
+      contatos: data.contatos,
       ...imagemUpdate,
     })
     .eq("id", eventoId);
@@ -345,6 +428,8 @@ export async function updateEvento(
     preco: tipo.preco,
     descricao: tipo.descricao,
     max_ingressos: tipo.max_ingressos ?? null,
+    opcional: tipo.opcional,
+    grupo: tipo.grupo ?? null,
     lotes: tipo.lotes ?? [],
     ordem,
     ativo: true,
@@ -408,7 +493,7 @@ export async function duplicateEvento(
   const { data: source, error: fetchErr } = await supabase
     .from("eventos")
     .select(
-      "slug, nome, descricao_curta, descricao_longa, data_evento, hora_evento, local, imagem_capa_url, cor_tematica, metodos_pagamento, max_parcelas, prazo_inscricao, destinacao_valores, infos_importantes, mostrar_estoque_publico, tipos_ingresso(nome, preco, descricao, icone, cor, ordem, ativo, max_ingressos, lotes)",
+      "slug, nome, descricao_curta, descricao_longa, data_evento, hora_evento, local, imagem_capa_url, cor_tematica, metodos_pagamento, max_parcelas, prazo_inscricao, destinacao_valores, infos_importantes, mostrar_estoque_publico, palestrantes, contatos, tipos_ingresso(nome, preco, descricao, icone, cor, ordem, ativo, max_ingressos, opcional, grupo, lotes)",
     )
     .eq("id", eventoId)
     .maybeSingle();
@@ -438,6 +523,8 @@ export async function duplicateEvento(
       destinacao_valores: source.destinacao_valores,
       infos_importantes: source.infos_importantes,
       mostrar_estoque_publico: source.mostrar_estoque_publico ?? false,
+      palestrantes: source.palestrantes ?? [],
+      contatos: source.contatos ?? [],
     })
     .select("id")
     .single();
@@ -456,6 +543,8 @@ export async function duplicateEvento(
     ordem: number;
     ativo: boolean;
     max_ingressos: number | null;
+    opcional: boolean | null;
+    grupo: string | null;
     lotes: unknown;
   }>;
 
@@ -471,6 +560,8 @@ export async function duplicateEvento(
         ordem: t.ordem,
         ativo: t.ativo,
         max_ingressos: t.max_ingressos ?? null,
+        opcional: t.opcional ?? false,
+        grupo: t.grupo ?? null,
         lotes: t.lotes ?? [],
       })),
     );
@@ -523,7 +614,7 @@ export async function registrarVendaDinheiro(
   // Busca os tipos do evento (com lotes) pra calcular preço NO SERVIDOR
   const { data: tipos, error: tiposErr } = await admin
     .from("tipos_ingresso")
-    .select("id, nome, preco, lotes")
+    .select("id, nome, preco, lotes, grupo")
     .eq("evento_id", d.evento_id);
 
   if (tiposErr || !tipos) {
@@ -548,10 +639,13 @@ export async function registrarVendaDinheiro(
       lotes,
     };
     const preco = getPrecoAtual(tipoComLotes);
+    // Nome final = tipo (sem prefixo "Nº Lote -") + lote ativo. Vendas
+    // opcionais com grupo ganham o prefixo do grupo (ex: "Almoço - Frango").
+    const nomeBase = montaNomeItem(tipo.nome, getLoteAtivo(lotes));
+    const nomeFinal = tipo.grupo ? `${tipo.grupo} - ${nomeBase}` : nomeBase;
     itens.push({
       tipo_id: tipo.id,
-      // Nome final = tipo (sem prefixo "Nº Lote -") + lote ativo
-      nome: montaNomeItem(tipo.nome, getLoteAtivo(lotes)),
+      nome: nomeFinal,
       qtd,
       preco_unitario: preco,
     });

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -86,7 +87,7 @@ export default async function EventoPublicPage({ params }: PageProps) {
   const { data: evento } = await supabase
     .from("eventos")
     .select(
-      "id, slug, nome, descricao_curta, descricao_longa, data_evento, hora_evento, local, imagem_capa_url, cor_tematica, prazo_inscricao, destinacao_valores, infos_importantes, max_parcelas, metodos_pagamento, status, mostrar_estoque_publico, tipos_ingresso(id, nome, preco, descricao, ordem, lotes, max_ingressos)",
+      "id, slug, nome, descricao_curta, descricao_longa, data_evento, hora_evento, local, imagem_capa_url, cor_tematica, prazo_inscricao, destinacao_valores, infos_importantes, max_parcelas, metodos_pagamento, status, mostrar_estoque_publico, palestrantes, contatos, tipos_ingresso(id, nome, preco, descricao, ordem, lotes, max_ingressos, opcional, grupo)",
     )
     .eq("slug", slug)
     .in("status", ["publicado", "encerrado"])
@@ -97,12 +98,24 @@ export default async function EventoPublicPage({ params }: PageProps) {
   const tipos = (evento.tipos_ingresso ?? []).sort(
     (a, b) => (a.ordem ?? 0) - (b.ordem ?? 0),
   );
+  // Vitrine de preços mostra só os ingressos obrigatórios; as vendas
+  // opcionais (almoço etc.) aparecem dentro do formulário de inscrição.
+  const tiposVitrine = tipos.filter(
+    (t) => !(t as { opcional?: boolean | null }).opcional,
+  );
 
   // Cota / estoque por tipo (só pagas contam)
   const estoque = await calcEstoquePorTipo(supabase, evento.id);
   const mostrarEstoque = evento.mostrar_estoque_publico ?? false;
 
   const cor = evento.cor_tematica ?? "#C2410C";
+
+  // Contatos do rodapé: usa os cadastrados; se não houver, cai no número
+  // padrão da secretaria do NEEL.
+  const contatos =
+    Array.isArray(evento.contatos) && evento.contatos.length > 0
+      ? (evento.contatos as string[])
+      : ["(84) 9 8145-0229"];
 
   // Cores derivadas (rgba com transparência pra fundo suave)
   const corFundoSuave = `${cor}14`; // ~8% opacity em hex
@@ -249,6 +262,73 @@ export default async function EventoPublicPage({ params }: PageProps) {
         </section>
       )}
 
+      {/* ============ PALESTRANTES ============ */}
+      {Array.isArray(evento.palestrantes) &&
+        evento.palestrantes.length > 0 && (
+          <section className="bg-white py-20">
+            <div className="container mx-auto max-w-5xl px-4">
+              <div className="mx-auto max-w-3xl text-center">
+                <SectionEyebrow cor={cor}>Quem vai estar lá</SectionEyebrow>
+                <h2
+                  className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl"
+                  style={{ color: cor }}
+                >
+                  Palestrantes
+                </h2>
+              </div>
+              <div className="mx-auto mt-12 grid max-w-4xl grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
+                {(
+                  evento.palestrantes as {
+                    nome: string;
+                    foto_url: string | null;
+                  }[]
+                ).map((p, i) => {
+                  const iniciais = p.nome
+                    .split(" ")
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map((w) => w[0])
+                    .join("")
+                    .toUpperCase();
+                  return (
+                    <div
+                      key={i}
+                      className="flex flex-col items-center text-center"
+                    >
+                      <div
+                        className="relative size-28 overflow-hidden rounded-full border-4 shadow-float"
+                        style={{ borderColor: `${cor}33` }}
+                      >
+                        {p.foto_url ? (
+                          <Image
+                            src={p.foto_url}
+                            alt={p.nome}
+                            fill
+                            sizes="112px"
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div
+                            className="grid size-full place-items-center text-white"
+                            style={{ background: cor }}
+                          >
+                            <span className="text-2xl font-extrabold">
+                              {iniciais}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <span className="mt-4 text-sm font-bold leading-snug text-foreground">
+                        {p.nome}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        )}
+
       {/* ============ O QUE ESTÁ INCLUÍDO (antiga "destinação") ============ */}
       {evento.destinacao_valores && (
         <section
@@ -360,9 +440,9 @@ export default async function EventoPublicPage({ params }: PageProps) {
             </p>
           </div>
 
-          {tipos.length > 0 ? (
+          {tiposVitrine.length > 0 ? (
             <div className="mt-12 grid gap-4 sm:grid-cols-2">
-              {tipos.map((tipo) => {
+              {tiposVitrine.map((tipo) => {
                 const lotes = (tipo.lotes ?? []) as Lote[];
                 const loteInfo = getLoteDisplay(
                   { nome: tipo.nome, preco: Number(tipo.preco), descricao: tipo.descricao, lotes },
@@ -497,7 +577,7 @@ export default async function EventoPublicPage({ params }: PageProps) {
               <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
                 {motivoEncerramento} Para mais informações, fale com a
                 secretaria do NEEL pelo WhatsApp{" "}
-                <strong className="font-semibold text-amadeus-blue" translate="no">
+                <strong className="font-semibold text-neel-blue" translate="no">
                   (84) 9 8145-0229
                 </strong>
                 .
@@ -522,6 +602,9 @@ export default async function EventoPublicPage({ params }: PageProps) {
                   descricao: t.descricao,
                   ordem: t.ordem,
                   lotes: (t.lotes ?? []) as Lote[],
+                  opcional:
+                    (t as { opcional?: boolean | null }).opcional ?? false,
+                  grupo: (t as { grupo?: string | null }).grupo ?? null,
                   restantes: est?.restantes ?? null,
                   esgotado: est?.esgotado ?? false,
                   mostrar_estoque: mostrarEstoque,
@@ -533,21 +616,28 @@ export default async function EventoPublicPage({ params }: PageProps) {
       </section>
 
       {/* ============ CONTATO ============ */}
-      <section className="bg-amadeus-blue-50/40 py-16">
+      <section className="bg-neel-blue-50/40 py-16">
         <div className="container mx-auto max-w-2xl px-4 text-center">
-          <h2 className="text-2xl font-extrabold text-amadeus-blue sm:text-3xl">
+          <h2 className="text-2xl font-extrabold text-neel-blue sm:text-3xl">
             Dúvidas sobre este evento?
           </h2>
           <p className="mt-3 text-muted-foreground">
             Fale com a secretaria pelo WhatsApp
           </p>
-          <a
-            href="tel:+5584981450229"
-            className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-white px-6 py-4 text-lg font-extrabold text-amadeus-blue shadow-float transition-all hover:-translate-y-0.5 hover:shadow-float-lg"
-          >
-            <Phone className="size-5" />
-            <span translate="no">(84) 9 8145-0229</span>
-          </a>
+          <div className="mt-5 flex flex-wrap justify-center gap-3">
+            {contatos.map((contato) => (
+              <a
+                key={contato}
+                href={`https://wa.me/55${contato.replace(/\D/g, "")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-2xl bg-white px-6 py-4 text-lg font-extrabold text-neel-blue shadow-float transition-all hover:-translate-y-0.5 hover:shadow-float-lg"
+              >
+                <Phone className="size-5" />
+                <span translate="no">{contato}</span>
+              </a>
+            ))}
+          </div>
           <p className="mt-3 text-xs text-muted-foreground">
             Horário de atendimento: 7h às 19h
           </p>
@@ -674,7 +764,7 @@ function DescricaoLonga({ texto, cor }: { texto: string; cor: string }) {
             {bloco.conteudo.map((item, j) => (
               <li
                 key={j}
-                className="flex items-start gap-2 rounded-2xl bg-amadeus-blue-50/40 p-3 text-sm"
+                className="flex items-start gap-2 rounded-2xl bg-neel-blue-50/40 p-3 text-sm"
               >
                 <Heart
                   className="mt-0.5 size-4 shrink-0"

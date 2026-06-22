@@ -44,7 +44,7 @@ export function OlhinhoGlobal() {
           ? "Ocultar valores sensíveis"
           : "Mostrar valores sensíveis (receitas e vendas)"
       }
-      className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-2.5 py-1.5 text-xs font-semibold text-muted-foreground shadow-sm transition-colors hover:bg-amadeus-blue-50 hover:text-amadeus-blue"
+      className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-2.5 py-1.5 text-xs font-semibold text-muted-foreground shadow-sm transition-colors hover:bg-neel-blue-50 hover:text-neel-blue"
     >
       {mostrar ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
       <span className="hidden lg:inline">
@@ -62,7 +62,7 @@ export function OlhinhoIcone() {
       type="button"
       onClick={alternar}
       title={mostrar ? "Ocultar valores" : "Mostrar valores"}
-      className="grid size-7 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-amadeus-blue-50 hover:text-amadeus-blue"
+      className="grid size-7 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-neel-blue-50 hover:text-neel-blue"
     >
       {mostrar ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
     </button>

@@ -34,7 +34,7 @@ export default async function PortariaHome() {
         </form>
       </header>
 
-      <div className="mb-6 flex items-center gap-2 text-amadeus-blue">
+      <div className="mb-6 flex items-center gap-2 text-neel-blue">
         <ScanLine className="size-6" />
         <h1 className="text-2xl font-extrabold">Escolha o evento</h1>
       </div>
@@ -43,7 +43,7 @@ export default async function PortariaHome() {
       </p>
 
       {!eventos || eventos.length === 0 ? (
-        <div className="grid place-items-center rounded-2xl border-2 border-dashed border-amadeus-blue/20 bg-white py-12 text-sm text-muted-foreground">
+        <div className="grid place-items-center rounded-2xl border-2 border-dashed border-neel-blue/20 bg-white py-12 text-sm text-muted-foreground">
           Nenhum evento publicado no momento.
         </div>
       ) : (
@@ -52,7 +52,7 @@ export default async function PortariaHome() {
             <Link
               key={ev.id}
               href={`/portaria/${ev.id}`}
-              className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-white p-4 shadow-sm transition-colors hover:border-amadeus-blue/40 hover:bg-amadeus-blue-50/40"
+              className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-white p-4 shadow-sm transition-colors hover:border-neel-blue/40 hover:bg-neel-blue-50/40"
             >
               <div className="min-w-0">
                 <div className="flex items-center gap-2">

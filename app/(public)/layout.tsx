@@ -18,7 +18,7 @@ export default function PublicLayout({
 
       <main className="flex-1">{children}</main>
 
-      <footer className="border-t border-border/60 bg-amadeus-blue-50/40">
+      <footer className="border-t border-border/60 bg-neel-blue-50/40">
         <div className="container mx-auto flex flex-col items-center gap-2 px-4 py-8 text-sm text-muted-foreground sm:flex-row sm:justify-between">
           <span>
             © {new Date().getFullYear()} NEEL — Núcleo Espírita Esperança de Luz.

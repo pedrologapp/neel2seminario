@@ -124,7 +124,7 @@ export default async function AdminDashboardPage() {
     <div className="container mx-auto px-4 py-10">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-amadeus-blue sm:text-4xl">
+          <h1 className="text-3xl font-extrabold tracking-tight text-neel-blue sm:text-4xl">
             Visão geral
           </h1>
           <p className="mt-1 text-muted-foreground">
@@ -152,12 +152,12 @@ export default async function AdminDashboardPage() {
         {semEventos ? (
           <Card>
             <CardContent className="pb-10">
-              <div className="grid place-items-center rounded-2xl border-2 border-dashed border-amadeus-blue/20 bg-amadeus-blue-50/40 py-16">
+              <div className="grid place-items-center rounded-2xl border-2 border-dashed border-neel-blue/20 bg-neel-blue-50/40 py-16">
                 <div className="max-w-md text-center">
-                  <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-white text-amadeus-blue shadow-float">
+                  <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-white text-neel-blue shadow-float">
                     <Sparkles className="size-6" />
                   </div>
-                  <h3 className="mt-5 text-xl font-extrabold text-amadeus-blue">
+                  <h3 className="mt-5 text-xl font-extrabold text-neel-blue">
                     Vamos criar o primeiro evento?
                   </h3>
                   <p className="mt-2 text-sm text-muted-foreground">

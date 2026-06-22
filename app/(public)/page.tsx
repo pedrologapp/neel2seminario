@@ -54,16 +54,16 @@ export default async function HomePage() {
     <>
       {/* HERO */}
       <section className="relative isolate overflow-hidden">
-        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-amadeus-blue-50 via-white to-amadeus-yellow-50" />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-neel-blue-50 via-white to-neel-yellow-50" />
         <div className="container mx-auto px-4 py-20 sm:py-28">
           <div className="mx-auto max-w-3xl text-center">
             <Logo
               variant="stacked"
               className="mx-auto scale-125 drop-shadow-xl sm:scale-150"
             />
-            <h1 className="mt-8 text-4xl font-extrabold tracking-tight text-amadeus-blue sm:text-6xl">
+            <h1 className="mt-8 text-4xl font-extrabold tracking-tight text-neel-blue sm:text-6xl">
               Cada encontro do nosso núcleo,{" "}
-              <span className="text-amadeus-yellow-dark">num só lugar</span>
+              <span className="text-neel-yellow-dark">num só lugar</span>
             </h1>
           </div>
         </div>
@@ -80,10 +80,10 @@ export default async function HomePage() {
                   key={b.titulo}
                   className="flex flex-col items-center text-center sm:items-start sm:text-left"
                 >
-                  <div className="grid size-12 place-items-center rounded-2xl bg-amadeus-blue-50 text-amadeus-blue">
+                  <div className="grid size-12 place-items-center rounded-2xl bg-neel-blue-50 text-neel-blue">
                     <Icone className="size-6" />
                   </div>
-                  <h3 className="mt-4 text-lg font-extrabold text-amadeus-blue">
+                  <h3 className="mt-4 text-lg font-extrabold text-neel-blue">
                     {b.titulo}
                   </h3>
                   <p className="mt-1 text-sm text-muted-foreground">
@@ -102,15 +102,15 @@ export default async function HomePage() {
       </section>
 
       {/* CTA contato */}
-      <section className="bg-amadeus-blue-50/40 py-16">
+      <section className="bg-neel-blue-50/40 py-16">
         <div className="container mx-auto max-w-2xl px-4 text-center">
-          <h3 className="text-2xl font-extrabold text-amadeus-blue">
+          <h3 className="text-2xl font-extrabold text-neel-blue">
             Dúvidas sobre algum evento?
           </h3>
           <p className="mt-3 text-muted-foreground">
             Fale com a secretaria do NEEL pelo WhatsApp{" "}
             <strong
-              className="font-semibold text-amadeus-blue"
+              className="font-semibold text-neel-blue"
               translate="no"
             >
               (84) 9 8145-0229

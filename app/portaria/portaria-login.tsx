@@ -23,7 +23,7 @@ export function PortariaLogin() {
       <Card className="w-full max-w-md p-2">
         <CardHeader className="items-center pb-2 text-center">
           <Logo variant="stacked" className="mb-6" />
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-amadeus-blue-50 px-3 py-1 text-sm font-semibold text-amadeus-blue">
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-neel-blue-50 px-3 py-1 text-sm font-semibold text-neel-blue">
             <ScanLine className="size-4" />
             Portaria
           </div>

@@ -3,18 +3,18 @@
 
 :root {
   /* NEEL brand — laranja pôr do sol.
-     Os tokens mantêm o nome "amadeus-*" por compatibilidade (centenas de
-     classNames). Aqui só mudam os VALORES: azul → laranja, amarelo → âmbar. */
-  --amadeus-blue: #c2410c;
-  --amadeus-blue-dark: #9a3412;
-  --amadeus-blue-light: #ea580c;
-  --amadeus-blue-50: #fff1e6;
-  --amadeus-blue-100: #fddcc4;
-  --amadeus-yellow: #f59e0b;
-  --amadeus-yellow-dark: #b45309;
-  --amadeus-yellow-light: #fbbf24;
-  --amadeus-yellow-50: #fef3e2;
-  --amadeus-yellow-100: #fde9c8;
+     Os nomes "neel-blue/neel-yellow" são herdados da paleta original; os
+     VALORES já são os da NEEL: "blue" = laranja, "yellow" = âmbar. */
+  --neel-blue: #c2410c;
+  --neel-blue-dark: #9a3412;
+  --neel-blue-light: #ea580c;
+  --neel-blue-50: #fff1e6;
+  --neel-blue-100: #fddcc4;
+  --neel-yellow: #f59e0b;
+  --neel-yellow-dark: #b45309;
+  --neel-yellow-light: #fbbf24;
+  --neel-yellow-50: #fef3e2;
+  --neel-yellow-100: #fde9c8;
 
   /* Semantic */
   --background: #ffffff;
@@ -65,17 +65,17 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
 
-  /* NEEL brand utilities (nomes amadeus-* mantidos por compatibilidade) */
-  --color-amadeus-blue: var(--amadeus-blue);
-  --color-amadeus-blue-dark: var(--amadeus-blue-dark);
-  --color-amadeus-blue-light: var(--amadeus-blue-light);
-  --color-amadeus-blue-50: var(--amadeus-blue-50);
-  --color-amadeus-blue-100: var(--amadeus-blue-100);
-  --color-amadeus-yellow: var(--amadeus-yellow);
-  --color-amadeus-yellow-dark: var(--amadeus-yellow-dark);
-  --color-amadeus-yellow-light: var(--amadeus-yellow-light);
-  --color-amadeus-yellow-50: var(--amadeus-yellow-50);
-  --color-amadeus-yellow-100: var(--amadeus-yellow-100);
+  /* NEEL brand utilities */
+  --color-neel-blue: var(--neel-blue);
+  --color-neel-blue-dark: var(--neel-blue-dark);
+  --color-neel-blue-light: var(--neel-blue-light);
+  --color-neel-blue-50: var(--neel-blue-50);
+  --color-neel-blue-100: var(--neel-blue-100);
+  --color-neel-yellow: var(--neel-yellow);
+  --color-neel-yellow-dark: var(--neel-yellow-dark);
+  --color-neel-yellow-light: var(--neel-yellow-light);
+  --color-neel-yellow-50: var(--neel-yellow-50);
+  --color-neel-yellow-100: var(--neel-yellow-100);
 
   --font-sans: var(--font-dm-sans);
   --font-display: var(--font-dm-sans);

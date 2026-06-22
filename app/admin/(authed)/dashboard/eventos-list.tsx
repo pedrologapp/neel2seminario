@@ -75,7 +75,7 @@ export function DashboardEventosList({ proximos, concluidos }: Props) {
 
       <CardContent className="space-y-3">
         {lista.length === 0 ? (
-          <div className="grid place-items-center rounded-2xl border-2 border-dashed border-amadeus-blue/20 bg-amadeus-blue-50/30 py-10 text-sm text-muted-foreground">
+          <div className="grid place-items-center rounded-2xl border-2 border-dashed border-neel-blue/20 bg-neel-blue-50/30 py-10 text-sm text-muted-foreground">
             {aba === "proximos"
               ? "Nenhum evento ativo no momento."
               : "Nenhum evento concluído ainda."}
@@ -85,10 +85,10 @@ export function DashboardEventosList({ proximos, concluidos }: Props) {
             <Link
               key={ev.id}
               href={`/admin/eventos/${ev.id}`}
-              className="flex items-center justify-between gap-3 rounded-2xl border border-border/70 p-4 transition-colors hover:border-amadeus-blue/40 hover:bg-amadeus-blue-50/40"
+              className="flex items-center justify-between gap-3 rounded-2xl border border-border/70 p-4 transition-colors hover:border-neel-blue/40 hover:bg-neel-blue-50/40"
             >
               <div className="min-w-0">
-                <div className="truncate font-semibold text-amadeus-blue">
+                <div className="truncate font-semibold text-neel-blue">
                   {ev.nome}
                 </div>
                 <div className="text-sm text-muted-foreground">
@@ -97,7 +97,7 @@ export function DashboardEventosList({ proximos, concluidos }: Props) {
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1.5">
                 <div
-                  className="inline-flex items-center gap-1.5 rounded-full bg-amadeus-blue-50 px-2.5 py-1 text-xs font-bold text-amadeus-blue"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-neel-blue-50 px-2.5 py-1 text-xs font-bold text-neel-blue"
                   title="Ingressos vendidos"
                 >
                   <Ticket className="size-3.5" />
@@ -155,8 +155,8 @@ function TabPill({
       onClick={onClick}
       className={`inline-flex items-center rounded-xl px-4 py-1.5 text-sm font-semibold transition-colors ${
         active
-          ? "bg-amadeus-blue text-white shadow-float"
-          : "text-amadeus-blue hover:bg-amadeus-blue-50"
+          ? "bg-neel-blue text-white shadow-float"
+          : "text-neel-blue hover:bg-neel-blue-50"
       }`}
     >
       {children}
@@ -164,7 +164,7 @@ function TabPill({
         className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-bold ${
           active
             ? "bg-white/25 text-white"
-            : "bg-amadeus-blue-50 text-amadeus-blue"
+            : "bg-neel-blue-50 text-neel-blue"
         }`}
       >
         {count}

@@ -50,6 +50,8 @@ interface Tipo {
   descricao: string | null;
   ordem: number | null;
   lotes?: Lote[];
+  opcional?: boolean;
+  grupo?: string | null;
   restantes?: number | null; // null = sem limite, 0 = esgotado
   esgotado?: boolean;
   mostrar_estoque?: boolean;
@@ -126,6 +128,40 @@ export function InscricaoForm({ evento, tipos }: Props) {
     [qtds],
   );
 
+  // Separa ingressos obrigatórios das vendas opcionais (ex: almoço).
+  const tiposObrigatorios = useMemo(
+    () => tipos.filter((t) => !t.opcional),
+    [tipos],
+  );
+  const tiposOpcionais = useMemo(
+    () => tipos.filter((t) => t.opcional),
+    [tipos],
+  );
+  // Agrupa as vendas opcionais pelo rótulo `grupo` (ex: "Almoço" → Frango,
+  // Vegetariano). Itens sem grupo viram um grupo de um item só.
+  const gruposOpcionais = useMemo(() => {
+    const map = new Map<string, { nome: string; itens: Tipo[] }>();
+    for (const t of tiposOpcionais) {
+      const chave = t.grupo?.trim() || t.nome;
+      let g = map.get(chave);
+      if (!g) {
+        g = { nome: chave, itens: [] };
+        map.set(chave, g);
+      }
+      g.itens.push(t);
+    }
+    return Array.from(map.values());
+  }, [tiposOpcionais]);
+  // A inscrição exige ao menos um item NÃO opcional. Se o evento só tiver
+  // itens opcionais (raro), qualquer quantidade serve.
+  const totalObrigatorias = useMemo(
+    () =>
+      tiposObrigatorios.reduce((a, t) => a + (qtds[t.id] ?? 0), 0),
+    [tiposObrigatorios, qtds],
+  );
+  const minimoOk =
+    tiposObrigatorios.length > 0 ? totalObrigatorias > 0 : totalSenhas > 0;
+
   const valorBase = useMemo(
     () =>
       tipos.reduce(
@@ -147,7 +183,7 @@ export function InscricaoForm({ evento, tipos }: Props) {
     /\S+@\S+\.\S+/.test(email) &&
     phoneValid &&
     phonesMatch &&
-    totalSenhas > 0;
+    minimoOk;
 
   // ---------- Handlers ----------
   function inc(tipoId: string) {
@@ -182,8 +218,11 @@ export function InscricaoForm({ evento, tipos }: Props) {
           tipo_id: t.id,
           // Junta nome do tipo (sem prefixo "Nº Lote -") com o lote ativo.
           // Assim a descrição que vai pro WhatsApp / detalhe sempre reflete
-          // o lote vigente no momento da compra.
-          nome: montaNomeItem(t.nome, getLoteAtivo(t.lotes)),
+          // o lote vigente no momento da compra. Vendas opcionais ganham o
+          // prefixo do grupo (ex: "Almoço - Frango").
+          nome: t.opcional && t.grupo
+            ? `${t.grupo} - ${montaNomeItem(t.nome, getLoteAtivo(t.lotes))}`
+            : montaNomeItem(t.nome, getLoteAtivo(t.lotes)),
           qtd: qtds[t.id]!,
           preco_unitario: getPrecoAtual(t),
         }));
@@ -209,6 +248,95 @@ export function InscricaoForm({ evento, tipos }: Props) {
       // Redireciona automaticamente
       window.location.href = result.paymentUrl;
     });
+  }
+
+  // Linha de um tipo (ingresso ou venda opcional) com contador.
+  function renderTipoRow(tipo: Tipo) {
+    const q = qtds[tipo.id] ?? 0;
+    const esgotado = tipo.esgotado ?? false;
+    const restantes = tipo.restantes;
+    const limite = typeof restantes === "number" ? restantes : Infinity;
+    const noLimite = q >= limite;
+    return (
+      <div
+        key={tipo.id}
+        className="flex items-center justify-between rounded-2xl border-2 p-4"
+        style={{
+          borderColor: esgotado ? "#9ca3af33" : q > 0 ? cor : "transparent",
+          background: esgotado
+            ? "#9ca3af14"
+            : q > 0
+              ? `${cor}10`
+              : "var(--muted)",
+          opacity: esgotado ? 0.7 : 1,
+        }}
+      >
+        <div>
+          <div className="flex items-center gap-2">
+            <span
+              className="font-semibold"
+              style={{ color: esgotado ? "#6b7280" : cor }}
+            >
+              {limparPrefixoLote(tipo.nome)}
+            </span>
+            {esgotado && (
+              <span className="rounded-full bg-gray-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+                Esgotado
+              </span>
+            )}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {(() => {
+              const precoAtual = getPrecoAtual(tipo);
+              const ativo = getLoteAtivo(tipo.lotes);
+              const parts: string[] = [];
+              if (tipo.descricao) parts.push(tipo.descricao);
+              parts.push(formatCurrency(precoAtual));
+              if (ativo) parts.push(`(${ativo.nome})`);
+              return parts.join(" · ");
+            })()}
+          </div>
+          {!esgotado &&
+            tipo.mostrar_estoque &&
+            typeof restantes === "number" && (
+              <div
+                className="mt-1 text-[11px] font-semibold"
+                style={{ color: cor }}
+              >
+                Restam {restantes}
+              </div>
+            )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => dec(tipo.id)}
+            disabled={q === 0 || esgotado}
+            className="size-9"
+          >
+            <Minus className="size-3.5" />
+          </Button>
+          <span
+            className="w-8 text-center text-xl font-extrabold tabular-nums"
+            style={{ color: esgotado ? "#6b7280" : cor }}
+          >
+            {q}
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => inc(tipo.id)}
+            disabled={esgotado || noLimite}
+            className="size-9"
+          >
+            <Plus className="size-3.5" />
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   // ============ TELA DE SUCESSO ============
@@ -240,7 +368,7 @@ export function InscricaoForm({ evento, tipos }: Props) {
           <p className="text-xs text-muted-foreground">
             Se o botão acima não funcionar, copie e cole o link no navegador:
           </p>
-          <div className="rounded-2xl bg-amadeus-blue-50/60 p-3 text-left text-xs break-all">
+          <div className="rounded-2xl bg-neel-blue-50/60 p-3 text-left text-xs break-all">
             {paymentUrl}
           </div>
         </CardContent>
@@ -415,100 +543,38 @@ export function InscricaoForm({ evento, tipos }: Props) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {tipos.map((tipo) => {
-            const q = qtds[tipo.id] ?? 0;
-            const esgotado = tipo.esgotado ?? false;
-            const restantes = tipo.restantes;
-            const limite =
-              typeof restantes === "number" ? restantes : Infinity;
-            const noLimite = q >= limite;
-            return (
-              <div
-                key={tipo.id}
-                className="flex items-center justify-between rounded-2xl border-2 p-4"
-                style={{
-                  borderColor: esgotado
-                    ? "#9ca3af33"
-                    : q > 0
-                      ? cor
-                      : "transparent",
-                  background: esgotado
-                    ? "#9ca3af14"
-                    : q > 0
-                      ? `${cor}10`
-                      : "var(--muted)",
-                  opacity: esgotado ? 0.7 : 1,
-                }}
-              >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="font-semibold"
-                      style={{ color: esgotado ? "#6b7280" : cor }}
-                    >
-                      {limparPrefixoLote(tipo.nome)}
-                    </span>
-                    {esgotado && (
-                      <span className="rounded-full bg-gray-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
-                        Esgotado
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {(() => {
-                      const precoAtual = getPrecoAtual(tipo);
-                      const ativo = getLoteAtivo(tipo.lotes);
-                      const parts: string[] = [];
-                      if (tipo.descricao) parts.push(tipo.descricao);
-                      parts.push(formatCurrency(precoAtual));
-                      if (ativo) parts.push(`(${ativo.nome})`);
-                      return parts.join(" · ");
-                    })()}
-                  </div>
-                  {!esgotado &&
-                    tipo.mostrar_estoque &&
-                    typeof restantes === "number" && (
-                      <div
-                        className="mt-1 text-[11px] font-semibold"
-                        style={{ color: cor }}
-                      >
-                        Restam {restantes}
-                      </div>
-                    )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => dec(tipo.id)}
-                    disabled={q === 0 || esgotado}
-                    className="size-9"
-                  >
-                    <Minus className="size-3.5" />
-                  </Button>
-                  <span
-                    className="w-8 text-center text-xl font-extrabold tabular-nums"
-                    style={{ color: esgotado ? "#6b7280" : cor }}
-                  >
-                    {q}
-                  </span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => inc(tipo.id)}
-                    disabled={esgotado || noLimite}
-                    className="size-9"
-                  >
-                    <Plus className="size-3.5" />
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
+          {(tiposObrigatorios.length > 0 ? tiposObrigatorios : tipos).map(
+            renderTipoRow,
+          )}
 
-          {totalSenhas === 0 && (
+          {/* Vendas opcionais (ex: almoço → Frango, Vegetariano) */}
+          {tiposObrigatorios.length > 0 && gruposOpcionais.length > 0 && (
+            <div className="space-y-4 pt-2">
+              <div className="flex items-center gap-2 pt-1">
+                <span
+                  className="text-xs font-bold uppercase tracking-wider"
+                  style={{ color: cor }}
+                >
+                  Opcionais
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  adicione se quiser — não é obrigatório
+                </span>
+              </div>
+              {gruposOpcionais.map((grupo) => (
+                <div key={grupo.nome} className="space-y-2">
+                  {grupo.itens.length > 1 && (
+                    <p className="text-sm font-semibold" style={{ color: cor }}>
+                      {grupo.nome}
+                    </p>
+                  )}
+                  {grupo.itens.map(renderTipoRow)}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!minimoOk && (
             <p className="flex items-center gap-2 text-sm text-amber-700">
               <AlertCircle className="size-4" />
               Selecione pelo menos um ingresso.

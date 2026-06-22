@@ -20,7 +20,7 @@ function secret(): string {
   return (
     process.env.WEBHOOK_CONFIRM_SECRET ||
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    "amadeus-portaria-fallback"
+    "neel-portaria-fallback"
   );
 }
 

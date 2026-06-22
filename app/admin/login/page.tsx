@@ -31,7 +31,7 @@ export default function AdminLoginPage() {
 
       <a
         href={portariaUrl}
-        className="mt-5 inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2 text-sm font-semibold text-amadeus-blue shadow-sm transition-colors hover:bg-amadeus-blue-50"
+        className="mt-5 inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2 text-sm font-semibold text-neel-blue shadow-sm transition-colors hover:bg-neel-blue-50"
       >
         <ScanLine className="size-4" />
         Ler Entradas do Evento

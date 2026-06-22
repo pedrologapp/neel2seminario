@@ -17,7 +17,7 @@ export default async function VendaDinheiroPage({ params }: PageProps) {
   const { data: evento } = await supabase
     .from("eventos")
     .select(
-      "id, nome, cor_tematica, tipos_ingresso(id, nome, preco, descricao, ordem, lotes, max_ingressos)",
+      "id, nome, cor_tematica, tipos_ingresso(id, nome, preco, descricao, ordem, lotes, max_ingressos, opcional, grupo)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -37,6 +37,8 @@ export default async function VendaDinheiroPage({ params }: PageProps) {
         preco: Number(t.preco),
         descricao: t.descricao,
         lotes: (t.lotes ?? []) as Lote[],
+        opcional: (t as { opcional?: boolean | null }).opcional ?? false,
+        grupo: (t as { grupo?: string | null }).grupo ?? null,
         restantes: est?.restantes ?? null,
         esgotado: est?.esgotado ?? false,
       };
@@ -46,12 +48,12 @@ export default async function VendaDinheiroPage({ params }: PageProps) {
     <div className="container mx-auto max-w-3xl px-4 py-10">
       <Link
         href={`/admin/eventos/${id}`}
-        className="inline-flex items-center gap-1 text-sm font-semibold text-amadeus-blue hover:underline"
+        className="inline-flex items-center gap-1 text-sm font-semibold text-neel-blue hover:underline"
       >
         <ChevronLeft className="size-4" />
         Voltar para o evento
       </Link>
-      <h1 className="mt-4 flex items-center gap-2 text-3xl font-extrabold tracking-tight text-amadeus-blue sm:text-4xl">
+      <h1 className="mt-4 flex items-center gap-2 text-3xl font-extrabold tracking-tight text-neel-blue sm:text-4xl">
         <Wallet className="size-7" />
         Venda em dinheiro
       </h1>

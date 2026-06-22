@@ -66,7 +66,7 @@ export function ExcluirCobrancaButton({
         >
           <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-float-lg">
             <div className="flex items-center justify-between">
-              <h3 className="flex items-center gap-2 text-lg font-extrabold text-amadeus-blue">
+              <h3 className="flex items-center gap-2 text-lg font-extrabold text-neel-blue">
                 <Lock className="size-5" />
                 Confirmar senha
               </h3>

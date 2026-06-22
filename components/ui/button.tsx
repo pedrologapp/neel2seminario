@@ -9,16 +9,16 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-amadeus-blue text-white shadow-float hover:bg-amadeus-blue-dark hover:shadow-float-lg",
+          "bg-neel-blue text-white shadow-float hover:bg-neel-blue-dark hover:shadow-float-lg",
         accent:
-          "bg-amadeus-yellow text-amadeus-blue-dark shadow-float hover:bg-amadeus-yellow-dark hover:text-white hover:shadow-float-lg",
+          "bg-neel-yellow text-neel-blue-dark shadow-float hover:bg-neel-yellow-dark hover:text-white hover:shadow-float-lg",
         outline:
-          "border-2 border-amadeus-blue bg-white text-amadeus-blue hover:bg-amadeus-blue-50",
+          "border-2 border-neel-blue bg-white text-neel-blue hover:bg-neel-blue-50",
         ghost:
-          "text-amadeus-blue hover:bg-amadeus-blue-50",
+          "text-neel-blue hover:bg-neel-blue-50",
         destructive:
           "bg-destructive text-destructive-foreground shadow-float hover:bg-red-700",
-        link: "text-amadeus-blue underline-offset-4 hover:underline",
+        link: "text-neel-blue underline-offset-4 hover:underline",
       },
       size: {
         sm: "h-9 px-4",

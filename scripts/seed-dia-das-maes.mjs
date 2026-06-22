@@ -25,7 +25,7 @@ const supabase = createClient(url, serviceKey, {
 
 const SLUG = "dia-das-maes-2026";
 
-const descricaoLonga = `A Escola Amadeus preparou uma tarde linda e cheia de carinho para celebrar vocês, que são tão especiais em nossas vidas!
+const descricaoLonga = `A NEEL preparou uma tarde linda e cheia de carinho para celebrar vocês, que são tão especiais em nossas vidas!
 
 Esperamos todas vocês para comemorarmos juntos o Dia das Mães, em um momento repleto de amor, alegria e muita emoção ao lado de seus filhos.
 
@@ -44,7 +44,7 @@ const eventoData = {
   descricao_longa: descricaoLonga,
   data_evento: "2026-05-16",
   hora_evento: "15:00",
-  local: "Novo Auditório da Escola Amadeus",
+  local: "Novo Auditório da NEEL",
   cor_tematica: "#EC4899",
   status: "publicado",
   metodos_pagamento: ["pix", "cartao"],
@@ -53,7 +53,7 @@ const eventoData = {
   destinacao_valores:
     "Os valores arrecadados serão destinados às despesas da comemoração e dos itens preparados: lembrancinhas, sorvetada, algodão doce, pipoca, churros e ornamentação do espaço.",
   infos_importantes: [
-    "A comemoração acontecerá em 16/05/2026 (sábado), às 15h, no Novo Auditório da Escola Amadeus.",
+    "A comemoração acontecerá em 16/05/2026 (sábado), às 15h, no Novo Auditório da NEEL.",
     "Filhos(as) dos alunos da escola são isentos — não será cobrada nenhuma taxa para participarem ao lado da mãe.",
     "A cantina estará aberta durante todo o evento.",
     "Parcelamento em até 3x no cartão (com juros do Asaas).",

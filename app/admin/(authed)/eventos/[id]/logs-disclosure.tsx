@@ -23,7 +23,7 @@ export function LogsDisclosure({ logs }: { logs: LogItem[] }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-1 rounded-lg border border-border bg-white px-2.5 py-1 text-xs font-semibold text-amadeus-blue transition-colors hover:bg-amadeus-blue-50"
+        className="inline-flex items-center gap-1 rounded-lg border border-border bg-white px-2.5 py-1 text-xs font-semibold text-neel-blue transition-colors hover:bg-neel-blue-50"
       >
         <History className="size-3.5" />
         {logs.length}
@@ -40,7 +40,7 @@ export function LogsDisclosure({ logs }: { logs: LogItem[] }) {
             onClick={() => setOpen(false)}
           />
           <div className="absolute right-0 z-20 mt-2 w-72 rounded-2xl border border-border bg-white p-3 shadow-float-lg">
-            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-amadeus-blue">
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-neel-blue">
               Histórico
             </p>
             <ol className="space-y-2">

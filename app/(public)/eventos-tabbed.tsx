@@ -43,7 +43,7 @@ export function EventosTabbed({ proximos, concluidos }: Props) {
   if (total === 0) {
     return (
       <div className="mx-auto max-w-3xl text-center">
-        <h2 className="text-3xl font-extrabold tracking-tight text-amadeus-blue sm:text-4xl">
+        <h2 className="text-3xl font-extrabold tracking-tight text-neel-blue sm:text-4xl">
           Em breve, nossos eventos por aqui
         </h2>
         <p className="mt-3 text-muted-foreground">
@@ -56,7 +56,7 @@ export function EventosTabbed({ proximos, concluidos }: Props) {
   return (
     <>
       <div className="mx-auto max-w-3xl text-center">
-        <h2 className="text-3xl font-extrabold tracking-tight text-amadeus-blue sm:text-4xl">
+        <h2 className="text-3xl font-extrabold tracking-tight text-neel-blue sm:text-4xl">
           {aba === "proximos" ? "Próximos eventos" : "Eventos concluídos"}
         </h2>
         <p className="mt-3 text-muted-foreground">
@@ -78,7 +78,7 @@ export function EventosTabbed({ proximos, concluidos }: Props) {
                 className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-bold ${
                   aba === "proximos"
                     ? "bg-white/25 text-white"
-                    : "bg-amadeus-blue-50 text-amadeus-blue"
+                    : "bg-neel-blue-50 text-neel-blue"
                 }`}
               >
                 {proximos.length}
@@ -93,7 +93,7 @@ export function EventosTabbed({ proximos, concluidos }: Props) {
                 className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-bold ${
                   aba === "concluidos"
                     ? "bg-white/25 text-white"
-                    : "bg-amadeus-blue-50 text-amadeus-blue"
+                    : "bg-neel-blue-50 text-neel-blue"
                 }`}
               >
                 {concluidos.length}
@@ -131,8 +131,8 @@ function TabPill({
       onClick={onClick}
       className={`inline-flex items-center rounded-xl px-5 py-2 text-sm font-semibold transition-all ${
         active
-          ? "bg-amadeus-blue text-white shadow-float"
-          : "text-amadeus-blue hover:bg-amadeus-blue-50"
+          ? "bg-neel-blue text-white shadow-float"
+          : "text-neel-blue hover:bg-neel-blue-50"
       }`}
     >
       {children}
@@ -181,7 +181,7 @@ function EventoCard({
           {concluido ? (
             <Badge
               variant="muted"
-              className="absolute right-3 top-3 bg-white/95 text-amadeus-blue"
+              className="absolute right-3 top-3 bg-white/95 text-neel-blue"
             >
               <Check className="size-3" />
               Concluído

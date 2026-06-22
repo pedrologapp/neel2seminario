@@ -44,12 +44,12 @@ export function MetricasCompactas({ metricas }: { metricas: MetricaItem[] }) {
               className="flex items-center justify-between gap-3 border-b border-border/40 py-2.5 last:border-0"
             >
               <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-amadeus-blue-50 text-amadeus-blue">
+                <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-neel-blue-50 text-neel-blue">
                   <Icone className="size-3.5" />
                 </span>
                 {m.titulo}
               </span>
-              <span className="text-sm font-extrabold tabular-nums text-amadeus-blue">
+              <span className="text-sm font-extrabold tabular-nums text-neel-blue">
                 {m.sensivel ? <ValorSensivel valor={m.valor} /> : m.valor}
               </span>
             </div>

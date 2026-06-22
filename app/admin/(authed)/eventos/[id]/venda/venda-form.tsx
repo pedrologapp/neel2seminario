@@ -36,6 +36,8 @@ interface Tipo {
   preco: number;
   descricao: string | null;
   lotes: Lote[];
+  opcional?: boolean;
+  grupo?: string | null;
   restantes?: number | null;
   esgotado?: boolean;
 }
@@ -76,8 +78,37 @@ export function VendaForm({
     [tipos, qtds],
   );
 
+  // Separa ingressos obrigatórios das vendas opcionais (ex: almoço).
+  const tiposObrigatorios = useMemo(
+    () => tipos.filter((t) => !t.opcional),
+    [tipos],
+  );
+  const tiposOpcionais = useMemo(
+    () => tipos.filter((t) => t.opcional),
+    [tipos],
+  );
+  const gruposOpcionais = useMemo(() => {
+    const map = new Map<string, { nome: string; itens: Tipo[] }>();
+    for (const t of tiposOpcionais) {
+      const chave = t.grupo?.trim() || t.nome;
+      let g = map.get(chave);
+      if (!g) {
+        g = { nome: chave, itens: [] };
+        map.set(chave, g);
+      }
+      g.itens.push(t);
+    }
+    return Array.from(map.values());
+  }, [tiposOpcionais]);
+  const totalObrigatorias = useMemo(
+    () => tiposObrigatorios.reduce((a, t) => a + (qtds[t.id] ?? 0), 0),
+    [tiposObrigatorios, qtds],
+  );
+  const minimoOk =
+    tiposObrigatorios.length > 0 ? totalObrigatorias > 0 : totalSenhas > 0;
+
   const valido =
-    nome.trim().length >= 2 && telefone.length >= 8 && totalSenhas > 0;
+    nome.trim().length >= 2 && telefone.length >= 8 && minimoOk;
 
   function inc(id: string) {
     setQtds((p) => {
@@ -110,6 +141,83 @@ export function VendaForm({
       setSucesso(true);
       setTimeout(() => router.push(`/admin/eventos/${eventoId}`), 1500);
     });
+  }
+
+  // Linha de um tipo (senha ou venda opcional) com contador.
+  function renderTipoRow(tipo: Tipo) {
+    const q = qtds[tipo.id] ?? 0;
+    const preco = getPrecoAtual(tipo);
+    const lote = getLoteAtivo(tipo.lotes);
+    const esgotado = tipo.esgotado ?? false;
+    const limite =
+      typeof tipo.restantes === "number" ? tipo.restantes : Infinity;
+    const noLimite = q >= limite;
+    return (
+      <div
+        key={tipo.id}
+        className="flex items-center justify-between rounded-2xl border-2 p-4"
+        style={{
+          borderColor: esgotado ? "#9ca3af33" : q > 0 ? cor : "transparent",
+          background: esgotado
+            ? "#9ca3af14"
+            : q > 0
+              ? `${cor}10`
+              : "var(--muted)",
+          opacity: esgotado ? 0.7 : 1,
+        }}
+      >
+        <div>
+          <div className="flex items-center gap-2">
+            <span
+              className="font-semibold"
+              style={{ color: esgotado ? "#6b7280" : cor }}
+            >
+              {limparPrefixoLote(tipo.nome)}
+            </span>
+            {esgotado && (
+              <span className="rounded-full bg-gray-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+                Esgotado
+              </span>
+            )}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {formatCurrency(preco)}
+            {lote ? ` · ${lote.nome}` : ""}
+            {typeof tipo.restantes === "number" &&
+              !esgotado &&
+              ` · restam ${tipo.restantes}`}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => dec(tipo.id)}
+            disabled={q === 0 || esgotado}
+            className="size-9"
+          >
+            <Minus className="size-3.5" />
+          </Button>
+          <span
+            className="w-8 text-center text-xl font-extrabold tabular-nums"
+            style={{ color: esgotado ? "#6b7280" : cor }}
+          >
+            {q}
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => inc(tipo.id)}
+            disabled={esgotado || noLimite}
+            className="size-9"
+          >
+            <Plus className="size-3.5" />
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   if (sucesso) {
@@ -177,84 +285,36 @@ export function VendaForm({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {tipos.map((tipo) => {
-            const q = qtds[tipo.id] ?? 0;
-            const preco = getPrecoAtual(tipo);
-            const lote = getLoteAtivo(tipo.lotes);
-            const esgotado = tipo.esgotado ?? false;
-            const limite =
-              typeof tipo.restantes === "number" ? tipo.restantes : Infinity;
-            const noLimite = q >= limite;
-            return (
-              <div
-                key={tipo.id}
-                className="flex items-center justify-between rounded-2xl border-2 p-4"
-                style={{
-                  borderColor: esgotado
-                    ? "#9ca3af33"
-                    : q > 0
-                      ? cor
-                      : "transparent",
-                  background: esgotado
-                    ? "#9ca3af14"
-                    : q > 0
-                      ? `${cor}10`
-                      : "var(--muted)",
-                  opacity: esgotado ? 0.7 : 1,
-                }}
-              >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="font-semibold"
-                      style={{ color: esgotado ? "#6b7280" : cor }}
-                    >
-                      {limparPrefixoLote(tipo.nome)}
-                    </span>
-                    {esgotado && (
-                      <span className="rounded-full bg-gray-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
-                        Esgotado
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {formatCurrency(preco)}
-                    {lote ? ` · ${lote.nome}` : ""}
-                    {typeof tipo.restantes === "number" && !esgotado &&
-                      ` · restam ${tipo.restantes}`}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => dec(tipo.id)}
-                    disabled={q === 0 || esgotado}
-                    className="size-9"
-                  >
-                    <Minus className="size-3.5" />
-                  </Button>
-                  <span
-                    className="w-8 text-center text-xl font-extrabold tabular-nums"
-                    style={{ color: esgotado ? "#6b7280" : cor }}
-                  >
-                    {q}
-                  </span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => inc(tipo.id)}
-                    disabled={esgotado || noLimite}
-                    className="size-9"
-                  >
-                    <Plus className="size-3.5" />
-                  </Button>
-                </div>
+          {(tiposObrigatorios.length > 0 ? tiposObrigatorios : tipos).map(
+            renderTipoRow,
+          )}
+
+          {/* Vendas opcionais (ex: almoço → Frango, Vegetariano) */}
+          {tiposObrigatorios.length > 0 && gruposOpcionais.length > 0 && (
+            <div className="space-y-4 pt-2">
+              <div className="flex items-center gap-2 pt-1">
+                <span
+                  className="text-xs font-bold uppercase tracking-wider"
+                  style={{ color: cor }}
+                >
+                  Opcionais
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  adicione se o cliente quiser
+                </span>
               </div>
-            );
-          })}
+              {gruposOpcionais.map((grupo) => (
+                <div key={grupo.nome} className="space-y-2">
+                  {grupo.itens.length > 1 && (
+                    <p className="text-sm font-semibold" style={{ color: cor }}>
+                      {grupo.nome}
+                    </p>
+                  )}
+                  {grupo.itens.map(renderTipoRow)}
+                </div>
+              ))}
+            </div>
+          )}
 
           <div
             className="mt-2 flex items-center justify-between rounded-2xl p-4"

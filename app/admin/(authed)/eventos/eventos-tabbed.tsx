@@ -90,7 +90,7 @@ export function AdminEventosTabbed({ proximos, concluidos, rascunhos }: Props) {
       </div>
 
       {lista.length === 0 ? (
-        <div className="mt-10 grid place-items-center rounded-2xl border-2 border-dashed border-amadeus-blue/20 bg-amadeus-blue-50/40 py-12 text-sm text-muted-foreground">
+        <div className="mt-10 grid place-items-center rounded-2xl border-2 border-dashed border-neel-blue/20 bg-neel-blue-50/40 py-12 text-sm text-muted-foreground">
           {aba === "proximos"
             ? "Nenhum evento ativo no momento."
             : aba === "rascunhos"
@@ -125,8 +125,8 @@ function TabPill({
       onClick={onClick}
       className={`inline-flex items-center rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${
         active
-          ? "bg-amadeus-blue text-white shadow-float"
-          : "text-amadeus-blue hover:bg-amadeus-blue-50"
+          ? "bg-neel-blue text-white shadow-float"
+          : "text-neel-blue hover:bg-neel-blue-50"
       }`}
     >
       {children}
@@ -134,7 +134,7 @@ function TabPill({
         className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-bold ${
           active
             ? "bg-white/25 text-white"
-            : "bg-amadeus-blue-50 text-amadeus-blue"
+            : "bg-neel-blue-50 text-neel-blue"
         }`}
       >
         {count}
@@ -218,12 +218,12 @@ function EmptyState() {
   return (
     <Card className="mt-10">
       <CardContent className="pb-10">
-        <div className="grid place-items-center rounded-2xl border-2 border-dashed border-amadeus-blue/20 bg-amadeus-blue-50/40 py-16">
+        <div className="grid place-items-center rounded-2xl border-2 border-dashed border-neel-blue/20 bg-neel-blue-50/40 py-16">
           <div className="max-w-md text-center">
-            <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-white text-amadeus-blue shadow-float">
+            <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-white text-neel-blue shadow-float">
               <CalendarPlus className="size-6" />
             </div>
-            <h3 className="mt-5 text-xl font-extrabold text-amadeus-blue">
+            <h3 className="mt-5 text-xl font-extrabold text-neel-blue">
               Vamos criar o primeiro evento?
             </h3>
             <p className="mt-2 text-sm text-muted-foreground">

@@ -259,7 +259,7 @@ export function CobrancasTable({ cobrancas }: { cobrancas: CobrancaRow[] }) {
                           href={c.payment_url}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1 font-semibold text-amadeus-blue hover:underline"
+                          className="inline-flex items-center gap-1 font-semibold text-neel-blue hover:underline"
                         >
                           Abrir
                           <ExternalLink className="size-3.5" />
@@ -303,8 +303,8 @@ function TabPill({
       onClick={onClick}
       className={`inline-flex items-center rounded-xl px-4 py-1.5 text-sm font-semibold transition-colors ${
         active
-          ? "bg-amadeus-blue text-white shadow-float"
-          : "text-amadeus-blue hover:bg-amadeus-blue-50"
+          ? "bg-neel-blue text-white shadow-float"
+          : "text-neel-blue hover:bg-neel-blue-50"
       }`}
     >
       {children}
@@ -312,7 +312,7 @@ function TabPill({
         className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-bold ${
           active
             ? "bg-white/25 text-white"
-            : "bg-amadeus-blue-50 text-amadeus-blue"
+            : "bg-neel-blue-50 text-neel-blue"
         }`}
       >
         {count}
@@ -380,7 +380,7 @@ function ExcluirEmMassaButton({
         >
           <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-float-lg">
             <div className="flex items-center justify-between">
-              <h3 className="flex items-center gap-2 text-lg font-extrabold text-amadeus-blue">
+              <h3 className="flex items-center gap-2 text-lg font-extrabold text-neel-blue">
                 <Lock className="size-5" />
                 Confirmar senha
               </h3>
