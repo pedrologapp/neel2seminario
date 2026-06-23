@@ -87,7 +87,7 @@ export default async function EventoPublicPage({ params }: PageProps) {
   const { data: evento } = await supabase
     .from("eventos")
     .select(
-      "id, slug, nome, descricao_curta, descricao_longa, data_evento, hora_evento, local, imagem_capa_url, cor_tematica, prazo_inscricao, destinacao_valores, infos_importantes, max_parcelas, metodos_pagamento, status, mostrar_estoque_publico, palestrantes, contatos, tipos_ingresso(id, nome, preco, descricao, ordem, lotes, max_ingressos, opcional, grupo)",
+      "id, slug, nome, descricao_curta, descricao_longa, data_evento, hora_evento, local, imagem_capa_url, cor_tematica, prazo_inscricao, destinacao_valores, infos_importantes, max_parcelas, metodos_pagamento, status, mostrar_estoque_publico, palestrantes, momento_artistico, contatos, tipos_ingresso(id, nome, preco, descricao, ordem, lotes, max_ingressos, opcional, grupo)",
     )
     .eq("slug", slug)
     .in("status", ["publicado", "encerrado"])
@@ -279,6 +279,73 @@ export default async function EventoPublicPage({ params }: PageProps) {
               <div className="mx-auto mt-12 grid max-w-4xl grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
                 {(
                   evento.palestrantes as {
+                    nome: string;
+                    foto_url: string | null;
+                  }[]
+                ).map((p, i) => {
+                  const iniciais = p.nome
+                    .split(" ")
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map((w) => w[0])
+                    .join("")
+                    .toUpperCase();
+                  return (
+                    <div
+                      key={i}
+                      className="flex flex-col items-center text-center"
+                    >
+                      <div
+                        className="relative size-28 overflow-hidden rounded-full border-4 shadow-float"
+                        style={{ borderColor: `${cor}33` }}
+                      >
+                        {p.foto_url ? (
+                          <Image
+                            src={p.foto_url}
+                            alt={p.nome}
+                            fill
+                            sizes="112px"
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div
+                            className="grid size-full place-items-center text-white"
+                            style={{ background: cor }}
+                          >
+                            <span className="text-2xl font-extrabold">
+                              {iniciais}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <span className="mt-4 text-sm font-bold leading-snug text-foreground">
+                        {p.nome}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        )}
+
+      {/* ============ MOMENTO ARTÍSTICO ============ */}
+      {Array.isArray(evento.momento_artistico) &&
+        evento.momento_artistico.length > 0 && (
+          <section className="bg-neel-blue-50/30 py-20">
+            <div className="container mx-auto max-w-5xl px-4">
+              <div className="mx-auto max-w-3xl text-center">
+                <SectionEyebrow cor={cor}>Apresentações</SectionEyebrow>
+                <h2
+                  className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl"
+                  style={{ color: cor }}
+                >
+                  Momento Artístico
+                </h2>
+              </div>
+              <div className="mx-auto mt-12 grid max-w-4xl grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
+                {(
+                  evento.momento_artistico as {
                     nome: string;
                     foto_url: string | null;
                   }[]

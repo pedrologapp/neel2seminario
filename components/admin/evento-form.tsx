@@ -113,6 +113,7 @@ export interface EventoFormInitial {
   infos_importantes: string[] | null;
   mostrar_estoque_publico: boolean;
   palestrantes: { nome: string; foto_url: string | null }[] | null;
+  momento_artistico: { nome: string; foto_url: string | null }[] | null;
   contatos: string[] | null;
 }
 
@@ -211,6 +212,15 @@ export function EventoForm({
       preview: p.foto_url,
     })),
   );
+  const [momentoArtistico, setMomentoArtistico] = useState<PalestranteLinha[]>(
+    () =>
+      (initial?.momento_artistico ?? []).map((p) => ({
+        nome: p.nome,
+        foto_url: p.foto_url,
+        file: null,
+        preview: p.foto_url,
+      })),
+  );
   const [contatosTexto, setContatosTexto] = useState(
     () => (initial?.contatos ?? []).join("\n"),
   );
@@ -280,6 +290,35 @@ export function EventoForm({
   }
   function handlePalestranteFoto(idx: number, file: File | null) {
     setPalestrantes((prev) =>
+      prev.map((p, i) =>
+        i === idx
+          ? {
+              ...p,
+              file,
+              preview: file ? URL.createObjectURL(file) : p.foto_url,
+            }
+          : p,
+      ),
+    );
+  }
+
+  // ----- Momento artístico -----
+  function addMomento() {
+    setMomentoArtistico((prev) => [
+      ...prev,
+      { nome: "", foto_url: null, file: null, preview: null },
+    ]);
+  }
+  function removeMomento(idx: number) {
+    setMomentoArtistico((prev) => prev.filter((_, i) => i !== idx));
+  }
+  function updateMomentoNome(idx: number, nome: string) {
+    setMomentoArtistico((prev) =>
+      prev.map((p, i) => (i === idx ? { ...p, nome } : p)),
+    );
+  }
+  function handleMomentoFoto(idx: number, file: File | null) {
+    setMomentoArtistico((prev) =>
       prev.map((p, i) =>
         i === idx
           ? {
@@ -504,6 +543,19 @@ export function EventoForm({
     }
     formData.set("palestrantes", JSON.stringify(palestrantesPayload));
 
+    // Momento artístico: mesmo esquema dos palestrantes (momento_foto_<i>).
+    const momentoPayload: { nome: string; foto_url: string | null }[] = [];
+    let mIdx = 0;
+    for (const m of momentoArtistico) {
+      if (!m.nome.trim()) continue;
+      if (m.file) {
+        formData.set(`momento_foto_${mIdx}`, await compressImage(m.file));
+      }
+      momentoPayload.push({ nome: m.nome.trim(), foto_url: m.foto_url });
+      mIdx++;
+    }
+    formData.set("momento_artistico", JSON.stringify(momentoPayload));
+
     // Contatos: uma linha por número, ignora linhas vazias.
     const contatos = contatosTexto
       .split("\n")
@@ -665,6 +717,79 @@ export function EventoForm({
           <Button type="button" variant="outline" onClick={addPalestrante}>
             <Plus />
             Adicionar palestrante
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* ===== Momento Artístico ===== */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Momento Artístico</CardTitle>
+              <CardDescription>
+                Atrações artísticas do evento. A foto aparece na página pública.
+              </CardDescription>
+            </div>
+            <Badge variant="muted">{momentoArtistico.length}</Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {momentoArtistico.length === 0 && (
+            <p className="rounded-2xl border border-dashed border-border/70 bg-muted/40 p-4 text-sm text-muted-foreground">
+              Nenhuma atração cadastrada.
+            </p>
+          )}
+          {momentoArtistico.map((m, idx) => (
+            <div
+              key={idx}
+              className="flex items-center gap-3 rounded-2xl border border-border/70 bg-white p-3"
+            >
+              <label
+                htmlFor={`momento_foto_${idx}`}
+                className="group relative grid size-16 shrink-0 cursor-pointer place-items-center overflow-hidden rounded-full border-2 border-dashed border-input bg-neel-blue-50/30 transition-colors hover:border-neel-blue/40"
+                title="Adicionar/trocar foto"
+              >
+                {m.preview ? (
+                  <Image
+                    src={m.preview}
+                    alt={m.nome || "Atração"}
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <ImagePlus className="size-5 text-neel-blue" />
+                )}
+                <input
+                  id={`momento_foto_${idx}`}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="sr-only"
+                  onChange={(e) =>
+                    handleMomentoFoto(idx, e.target.files?.[0] ?? null)
+                  }
+                />
+              </label>
+              <Input
+                placeholder="Nome (ex: Coral NEEL)"
+                value={m.nome}
+                onChange={(e) => updateMomentoNome(idx, e.target.value)}
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => removeMomento(idx)}
+                title="Remover atração"
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            </div>
+          ))}
+          <Button type="button" variant="outline" onClick={addMomento}>
+            <Plus />
+            Adicionar atração
           </Button>
         </CardContent>
       </Card>

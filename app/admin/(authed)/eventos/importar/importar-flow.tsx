@@ -233,6 +233,7 @@ function FormDepoisExtracao({ dados, createAction }: FormDepoisExtracaoProps) {
           infos_importantes: dados.infos_importantes,
           mostrar_estoque_publico: false,
           palestrantes: [],
+          momento_artistico: [],
           contatos: [],
         }}
         initialTipos={dados.tipos_ingresso.map((t) => ({

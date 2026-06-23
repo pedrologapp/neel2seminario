@@ -60,6 +60,15 @@ const createEventoSchema = z.object({
     )
     .optional()
     .default([]),
+  momento_artistico: z
+    .array(
+      z.object({
+        nome: z.string().trim().min(1, "Nome da atração obrigatório"),
+        foto_url: z.string().nullable().optional(),
+      }),
+    )
+    .optional()
+    .default([]),
   contatos: z.array(z.string().trim().min(1)).optional().default([]),
   tipos_ingresso: z.array(tipoIngressoSchema).min(1, "Adicione ao menos um tipo de ingresso"),
 });
@@ -67,23 +76,25 @@ const createEventoSchema = z.object({
 type Palestrante = { nome: string; foto_url?: string | null };
 
 /**
- * Sobe as fotos novas dos palestrantes (anexadas como `palestrante_foto_<i>`)
- * e devolve a lista com os foto_url atualizados. Mantém a foto existente quando
- * não há arquivo novo no índice.
+ * Sobe as fotos novas de uma lista (palestrantes ou momento artístico),
+ * anexadas como `<campo>_<i>`, e devolve a lista com os foto_url atualizados.
+ * Mantém a foto existente quando não há arquivo novo no índice.
  */
-async function uploadPalestranteFotos(
+async function uploadFotosLista(
   formData: FormData,
-  palestrantes: Palestrante[],
+  itens: Palestrante[],
   nomeEvento: string,
+  campo: string,
+  pasta: string,
 ): Promise<Palestrante[]> {
   const admin = createAdminClient();
   const result: Palestrante[] = [];
-  for (let i = 0; i < palestrantes.length; i++) {
-    const p = palestrantes[i];
-    const file = formData.get(`palestrante_foto_${i}`);
+  for (let i = 0; i < itens.length; i++) {
+    const p = itens[i];
+    const file = formData.get(`${campo}_${i}`);
     if (file instanceof File && file.size > 0) {
       const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
-      const fileName = `palestrantes/${Date.now()}-${i}-${slugify(nomeEvento)}.${ext}`;
+      const fileName = `${pasta}/${Date.now()}-${i}-${slugify(nomeEvento)}.${ext}`;
       const { error: upErr } = await admin.storage
         .from("eventos")
         .upload(fileName, file, { contentType: file.type, upsert: false });
@@ -133,6 +144,9 @@ export async function createEvento(
     mostrar_estoque_publico:
       formData.get("mostrar_estoque_publico")?.toString() === "1",
     palestrantes: parseJsonArray(formData.get("palestrantes")?.toString()),
+    momento_artistico: parseJsonArray(
+      formData.get("momento_artistico")?.toString(),
+    ),
     contatos: parseJsonArray(formData.get("contatos")?.toString()),
     tipos_ingresso: parseTiposIngresso(
       formData.get("tipos_ingresso")?.toString(),
@@ -178,11 +192,20 @@ export async function createEvento(
     imagemCapaUrl = publicData.publicUrl;
   }
 
-  // Sobe fotos novas dos palestrantes
-  const palestrantes = await uploadPalestranteFotos(
+  // Sobe fotos novas dos palestrantes e do momento artístico
+  const palestrantes = await uploadFotosLista(
     formData,
     data.palestrantes,
     data.nome,
+    "palestrante_foto",
+    "palestrantes",
+  );
+  const momentoArtistico = await uploadFotosLista(
+    formData,
+    data.momento_artistico,
+    data.nome,
+    "momento_foto",
+    "momento-artistico",
   );
 
   // Gerar slug único
@@ -210,6 +233,7 @@ export async function createEvento(
       infos_importantes: data.infos_importantes,
       mostrar_estoque_publico: data.mostrar_estoque_publico,
       palestrantes,
+      momento_artistico: momentoArtistico,
       contatos: data.contatos,
     })
     .select("id")
@@ -339,6 +363,9 @@ export async function updateEvento(
     mostrar_estoque_publico:
       formData.get("mostrar_estoque_publico")?.toString() === "1",
     palestrantes: parseJsonArray(formData.get("palestrantes")?.toString()),
+    momento_artistico: parseJsonArray(
+      formData.get("momento_artistico")?.toString(),
+    ),
     contatos: parseJsonArray(formData.get("contatos")?.toString()),
     tipos_ingresso: parseTiposIngresso(
       formData.get("tipos_ingresso")?.toString(),
@@ -388,11 +415,20 @@ export async function updateEvento(
     imagemUpdate.imagem_capa_url = null;
   }
 
-  // Sobe fotos novas dos palestrantes (mantém as existentes)
-  const palestrantes = await uploadPalestranteFotos(
+  // Sobe fotos novas dos palestrantes e do momento artístico (mantém as existentes)
+  const palestrantes = await uploadFotosLista(
     formData,
     data.palestrantes,
     data.nome,
+    "palestrante_foto",
+    "palestrantes",
+  );
+  const momentoArtistico = await uploadFotosLista(
+    formData,
+    data.momento_artistico,
+    data.nome,
+    "momento_foto",
+    "momento-artistico",
   );
 
   const { error: updateErr } = await supabase
@@ -413,6 +449,7 @@ export async function updateEvento(
       infos_importantes: data.infos_importantes,
       mostrar_estoque_publico: data.mostrar_estoque_publico,
       palestrantes,
+      momento_artistico: momentoArtistico,
       contatos: data.contatos,
       ...imagemUpdate,
     })
@@ -533,7 +570,7 @@ export async function duplicateEvento(
   const { data: source, error: fetchErr } = await supabase
     .from("eventos")
     .select(
-      "slug, nome, descricao_curta, descricao_longa, data_evento, hora_evento, local, imagem_capa_url, cor_tematica, metodos_pagamento, max_parcelas, prazo_inscricao, destinacao_valores, infos_importantes, mostrar_estoque_publico, palestrantes, contatos, tipos_ingresso(nome, preco, descricao, icone, cor, ordem, ativo, max_ingressos, opcional, grupo, lotes)",
+      "slug, nome, descricao_curta, descricao_longa, data_evento, hora_evento, local, imagem_capa_url, cor_tematica, metodos_pagamento, max_parcelas, prazo_inscricao, destinacao_valores, infos_importantes, mostrar_estoque_publico, palestrantes, momento_artistico, contatos, tipos_ingresso(nome, preco, descricao, icone, cor, ordem, ativo, max_ingressos, opcional, grupo, lotes)",
     )
     .eq("id", eventoId)
     .maybeSingle();
@@ -564,6 +601,7 @@ export async function duplicateEvento(
       infos_importantes: source.infos_importantes,
       mostrar_estoque_publico: source.mostrar_estoque_publico ?? false,
       palestrantes: source.palestrantes ?? [],
+      momento_artistico: source.momento_artistico ?? [],
       contatos: source.contatos ?? [],
     })
     .select("id")

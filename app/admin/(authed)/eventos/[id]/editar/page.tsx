@@ -16,7 +16,7 @@ export default async function EditarEventoPage({ params }: PageProps) {
   const { data: evento } = await supabase
     .from("eventos")
     .select(
-      "id, nome, descricao_curta, descricao_longa, data_evento, hora_evento, local, imagem_capa_url, cor_tematica, metodos_pagamento, max_parcelas, prazo_inscricao, status, destinacao_valores, infos_importantes, mostrar_estoque_publico, palestrantes, contatos, tipos_ingresso(id, nome, preco, descricao, ordem, lotes, max_ingressos, opcional, grupo)",
+      "id, nome, descricao_curta, descricao_longa, data_evento, hora_evento, local, imagem_capa_url, cor_tematica, metodos_pagamento, max_parcelas, prazo_inscricao, status, destinacao_valores, infos_importantes, mostrar_estoque_publico, palestrantes, momento_artistico, contatos, tipos_ingresso(id, nome, preco, descricao, ordem, lotes, max_ingressos, opcional, grupo)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -83,6 +83,12 @@ export default async function EditarEventoPage({ params }: PageProps) {
               (evento as {
                 palestrantes?: { nome: string; foto_url: string | null }[] | null;
               }).palestrantes ?? [],
+            momento_artistico:
+              (evento as {
+                momento_artistico?:
+                  | { nome: string; foto_url: string | null }[]
+                  | null;
+              }).momento_artistico ?? [],
             contatos:
               (evento as { contatos?: string[] | null }).contatos ?? [],
           }}
