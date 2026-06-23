@@ -8,6 +8,7 @@ import {
   FileText,
   MapPin,
   Ticket,
+  Utensils,
   Wallet,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -53,7 +54,7 @@ export default async function EventoDetailPage({ params }: PageProps) {
   const { data: evento } = await supabase
     .from("eventos")
     .select(
-      "id, slug, nome, descricao_curta, data_evento, hora_evento, local, imagem_capa_url, cor_tematica, metodos_pagamento, max_parcelas, prazo_inscricao, status, mostrar_estoque_publico, tipos_ingresso(id, nome, preco, descricao, ordem, max_ingressos, lotes)",
+      "id, slug, nome, descricao_curta, data_evento, hora_evento, local, imagem_capa_url, cor_tematica, metodos_pagamento, max_parcelas, prazo_inscricao, status, mostrar_estoque_publico, tipos_ingresso(id, nome, preco, descricao, ordem, max_ingressos, opcional, grupo, lotes)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -106,12 +107,31 @@ export default async function EventoDetailPage({ params }: PageProps) {
   const receita = lista
     .filter((i) => i.status_pagamento === "pago")
     .reduce((sum, i) => sum + Number(i.valor_total ?? 0), 0);
-  const ingressosVendidos = lista
-    .filter((i) => i.status_pagamento === "pago")
-    .reduce((sum, i) => {
-      const itens = (i.itens as { qtd?: number }[] | null) ?? [];
-      return sum + itens.reduce((s, it) => s + (it.qtd ?? 0), 0);
+  // Quais tipos são opcionais (ex: almoço) — usado p/ separar das entradas.
+  const tiposOpcionais = new Set(
+    tipos.filter((t) => (t as { opcional?: boolean }).opcional).map((t) => t.id),
+  );
+  const ehOpcional = (it: { opcional?: boolean; tipo_id?: string }) =>
+    it.opcional === true || (it.tipo_id ? tiposOpcionais.has(it.tipo_id) : false);
+
+  const pagas = lista.filter((i) => i.status_pagamento === "pago");
+  const somaItens = (
+    filtro: (it: { opcional?: boolean; tipo_id?: string }) => boolean,
+  ) =>
+    pagas.reduce((sum, i) => {
+      const itens =
+        (i.itens as
+          | { qtd?: number; opcional?: boolean; tipo_id?: string }[]
+          | null) ?? [];
+      return (
+        sum +
+        itens.filter(filtro).reduce((s, it) => s + (it.qtd ?? 0), 0)
+      );
     }, 0);
+  // Entradas (senhas) x opcionais (almoço), contando só inscrições pagas.
+  const ingressosVendidos = somaItens((it) => !ehOpcional(it));
+  const opcionaisVendidos = somaItens((it) => ehOpcional(it));
+  const temOpcionais = tiposOpcionais.size > 0;
 
   const status = statusConfig[evento.status] ?? statusConfig.rascunho;
   const cor = evento.cor_tematica ?? "#C2410C";
@@ -174,12 +194,23 @@ export default async function EventoDetailPage({ params }: PageProps) {
       </header>
 
       {/* Métricas */}
-      <section className="mt-8 grid gap-4 sm:grid-cols-3">
+      <section
+        className={`mt-8 grid gap-4 ${
+          temOpcionais ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"
+        }`}
+      >
         <MetricCard
           label="Ingressos vendidos"
           value={ingressosVendidos}
           icon={Ticket}
         />
+        {temOpcionais && (
+          <MetricCard
+            label="Almoço (opcionais)"
+            value={opcionaisVendidos}
+            icon={Utensils}
+          />
+        )}
         <MetricCard
           label="Pendentes"
           value={totalPendentes}
