@@ -140,6 +140,12 @@ function TabPill({
   );
 }
 
+// Eventos que apontam para um domínio externo (link antigo que o público já
+// conhece) em vez da página interna. Demais eventos seguem a rota normal.
+const LINKS_EXTERNOS: Record<string, string> = {
+  "2-seminario-espirita-do-neel": "https://neel2seminario.vercel.app",
+};
+
 function EventoCard({
   evento,
   concluido,
@@ -149,9 +155,9 @@ function EventoCard({
 }) {
   const cor = evento.cor_tematica ?? "#C2410C";
   const hora = evento.hora_evento?.slice(0, 5);
+  const linkExterno = LINKS_EXTERNOS[evento.slug];
 
-  return (
-    <Link href={`/eventos/${evento.slug}`} className="group">
+  const conteudo = (
       <Card
         className={`overflow-hidden transition-all hover:-translate-y-1 hover:shadow-float-lg ${
           concluido ? "opacity-90" : ""
@@ -215,6 +221,15 @@ function EventoCard({
           />
         </CardContent>
       </Card>
+  );
+
+  return linkExterno ? (
+    <a href={linkExterno} className="group">
+      {conteudo}
+    </a>
+  ) : (
+    <Link href={`/eventos/${evento.slug}`} className="group">
+      {conteudo}
     </Link>
   );
 }
