@@ -1,4 +1,5 @@
 import { Logo } from "@/components/shared/logo";
+import { HeaderEventosLink } from "@/components/shared/header-eventos-link";
 import Link from "next/link";
 
 export default function PublicLayout({
@@ -13,6 +14,7 @@ export default function PublicLayout({
           <Link href="/" aria-label="Início">
             <Logo variant="compact" />
           </Link>
+          <HeaderEventosLink />
         </div>
       </header>
 
