@@ -225,6 +225,8 @@ export function InscricaoForm({ evento, tipos }: Props) {
             : montaNomeItem(t.nome, getLoteAtivo(t.lotes)),
           qtd: qtds[t.id]!,
           preco_unitario: getPrecoAtual(t),
+          opcional: t.opcional ?? false,
+          grupo: t.grupo ?? null,
         }));
 
       const result = await submitInscricao({

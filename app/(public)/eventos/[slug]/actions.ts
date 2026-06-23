@@ -12,6 +12,10 @@ const itemSchema = z.object({
   nome: z.string(),
   qtd: z.number().int().min(0),
   preco_unitario: z.number().min(0),
+  // Marca venda opcional (ex: almoço) p/ separar de ingressos de entrada
+  // no admin e na geração de tickets/QR no n8n.
+  opcional: z.boolean().optional().default(false),
+  grupo: z.string().nullable().optional(),
 });
 
 const inscricaoSchema = z.object({

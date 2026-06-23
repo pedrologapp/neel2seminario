@@ -32,6 +32,7 @@ export interface InscricaoRow {
   valor_total: number;
   total_senhas: number;
   senhas_detalhe: string;
+  opcionais_detalhe: string;
   status_pagamento: "pendente" | "pago" | "cancelado" | "estornado";
   metodo_pagamento: "pix" | "cartao" | "dinheiro";
   parcelas: number;
@@ -190,6 +191,7 @@ export function InscricoesTable({ inscricoes }: { inscricoes: InscricaoRow[] }) 
                 </th>
                 <th className="py-3 pr-4 font-semibold">Participante</th>
                 <th className="py-3 pr-4 font-semibold">Senhas</th>
+                <th className="py-3 pr-4 font-semibold">Opcionais</th>
                 <th className="py-3 pr-4 font-semibold">Valor</th>
                 <th className="py-3 pr-4 font-semibold">Pagamento</th>
                 <th className="py-3 pr-4 font-semibold">Status</th>
@@ -223,6 +225,15 @@ export function InscricoesTable({ inscricoes }: { inscricoes: InscricaoRow[] }) 
                         <div className="text-xs text-muted-foreground">
                           {i.senhas_detalhe}
                         </div>
+                      )}
+                    </td>
+                    <td className="py-3 pr-4">
+                      {i.opcionais_detalhe ? (
+                        <div className="text-xs text-neel-blue">
+                          {i.opcionais_detalhe}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </td>
                     <td className="py-3 pr-4 tabular-nums">
