@@ -22,6 +22,9 @@ const loteSchema = z.object({
 });
 
 const tipoIngressoSchema = z.object({
+  // id do tipo já existente (vem do form na edição) — usado p/ preservar o id
+  // ao salvar, evitando orfanizar tipo_id em inscrições já feitas.
+  id: z.string().uuid().optional().nullable(),
   nome: z.string().min(1, "Nome do ingresso obrigatório"),
   preco: z.number().min(0, "Preço não pode ser negativo"),
   descricao: z.string().optional().nullable(),
@@ -419,10 +422,12 @@ export async function updateEvento(
     return { error: `Erro ao atualizar evento: ${updateErr.message}` };
   }
 
-  // Substitui tipos_ingresso (delete-all + insert-all)
-  await supabase.from("tipos_ingresso").delete().eq("evento_id", eventoId);
-
-  const tiposToInsert = data.tipos_ingresso.map((tipo, ordem) => ({
+  // Reconcilia tipos_ingresso PRESERVANDO os ids existentes.
+  // (Antes era delete-all + insert-all, o que recriava os tipos com ids novos
+  // e orfanizava o tipo_id das inscrições já feitas — quebrava a geração de
+  // tickets no n8n por FK e zerava a contagem de vendidos.)
+  const enviados = data.tipos_ingresso;
+  const linhaTipo = (tipo: (typeof enviados)[number], ordem: number) => ({
     evento_id: eventoId,
     nome: tipo.nome,
     preco: tipo.preco,
@@ -433,14 +438,49 @@ export async function updateEvento(
     lotes: tipo.lotes ?? [],
     ordem,
     ativo: true,
-  }));
+  });
 
-  const { error: tiposErr } = await supabase
+  // 1) Apaga só os tipos que foram REMOVIDOS no formulário (preserva os enviados com id).
+  const idsManter = enviados
+    .map((t) => t.id)
+    .filter((id): id is string => !!id);
+  let delQuery = supabase
     .from("tipos_ingresso")
-    .insert(tiposToInsert);
+    .delete()
+    .eq("evento_id", eventoId);
+  if (idsManter.length > 0) {
+    delQuery = delQuery.not("id", "in", `(${idsManter.join(",")})`);
+  }
+  const { error: delErr } = await delQuery;
+  if (delErr) {
+    return { error: `Erro ao atualizar tipos de ingresso: ${delErr.message}` };
+  }
 
-  if (tiposErr) {
-    return { error: `Erro ao salvar tipos de ingresso: ${tiposErr.message}` };
+  // 2) Atualiza os existentes (por id) e acumula os novos (sem id) p/ inserir.
+  const novosTipos: ReturnType<typeof linhaTipo>[] = [];
+  for (let ordem = 0; ordem < enviados.length; ordem++) {
+    const tipo = enviados[ordem];
+    if (tipo.id) {
+      const { error } = await supabase
+        .from("tipos_ingresso")
+        .update(linhaTipo(tipo, ordem))
+        .eq("id", tipo.id)
+        .eq("evento_id", eventoId);
+      if (error) {
+        return { error: `Erro ao salvar tipos de ingresso: ${error.message}` };
+      }
+    } else {
+      novosTipos.push(linhaTipo(tipo, ordem));
+    }
+  }
+
+  if (novosTipos.length > 0) {
+    const { error: insErr } = await supabase
+      .from("tipos_ingresso")
+      .insert(novosTipos);
+    if (insErr) {
+      return { error: `Erro ao salvar tipos de ingresso: ${insErr.message}` };
+    }
   }
 
   revalidatePath("/admin/eventos");
