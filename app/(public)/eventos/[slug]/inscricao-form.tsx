@@ -41,6 +41,7 @@ import {
   telefoneValido,
   validarCPF,
 } from "@/lib/validators";
+import { trackPixel } from "@/lib/analytics/meta-pixel";
 import { submitInscricao } from "./actions";
 
 interface Tipo {
@@ -246,6 +247,18 @@ export function InscricaoForm({ evento, tipos }: Props) {
         return;
       }
 
+      // Sinal de fundo de funil pro Meta: dados preenchidos e indo pro
+      // pagamento. O "Purchase" em si acontece fora do site (Asaas), então
+      // esse é o evento mais próximo da compra que dá pra medir aqui.
+      trackPixel("AddPaymentInfo", {
+        content_type: "product",
+        content_ids: [evento.slug],
+        content_name: evento.nome,
+        num_items: totalSenhas,
+        value: calc.valorTotal,
+        currency: "BRL",
+      });
+
       setPaymentUrl(result.paymentUrl);
       // Redireciona automaticamente
       window.location.href = result.paymentUrl;
@@ -401,7 +414,14 @@ export function InscricaoForm({ evento, tipos }: Props) {
           size="lg"
           className="mt-5"
           style={{ background: cor }}
-          onClick={() => setShowForm(true)}
+          onClick={() => {
+            setShowForm(true);
+            trackPixel("InitiateCheckout", {
+              content_type: "product",
+              content_ids: [evento.slug],
+              content_name: evento.nome,
+            });
+          }}
         >
           Fazer inscrição
           <Heart fill="currentColor" />

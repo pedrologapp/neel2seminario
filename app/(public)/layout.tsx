@@ -1,5 +1,6 @@
 import { Logo } from "@/components/shared/logo";
 import { HeaderEventosLink } from "@/components/shared/header-eventos-link";
+import { MetaPixel } from "@/components/analytics/meta-pixel";
 import Link from "next/link";
 
 export default function PublicLayout({
@@ -9,6 +10,7 @@ export default function PublicLayout({
 }) {
   return (
     <div className="flex min-h-screen flex-col">
+      <MetaPixel />
       <header className="sticky top-0 z-40 border-b border-border/60 bg-white/85 backdrop-blur-md">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <Link href="/" aria-label="Início">

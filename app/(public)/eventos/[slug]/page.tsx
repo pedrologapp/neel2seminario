@@ -17,10 +17,10 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { TrackViewContent } from "@/components/analytics/track-view-content";
 import { createClient } from "@/lib/supabase/server";
 import {
   formatCurrency,
@@ -28,7 +28,12 @@ import {
   formatDateTimeBrt,
   formatProximoDiaBrt,
 } from "@/lib/utils";
-import { getLoteDisplay, limparPrefixoLote, type Lote } from "@/lib/lotes";
+import {
+  getLoteDisplay,
+  getPrecoAtual,
+  limparPrefixoLote,
+  type Lote,
+} from "@/lib/lotes";
 import { calcEstoquePorTipo } from "@/lib/estoque";
 import { InscricaoForm } from "./inscricao-form";
 
@@ -104,6 +109,27 @@ export default async function EventoPublicPage({ params }: PageProps) {
     (t) => !(t as { opcional?: boolean | null }).opcional,
   );
 
+  const palestrantes = (
+    Array.isArray(evento.palestrantes) ? evento.palestrantes : []
+  ) as Pessoa[];
+  const momentoArtistico = (
+    Array.isArray(evento.momento_artistico) ? evento.momento_artistico : []
+  ) as Pessoa[];
+
+  // Menor preço em cartaz — vai como "value" do ViewContent no Meta Pixel.
+  const menorPreco = tiposVitrine.length
+    ? Math.min(
+        ...tiposVitrine.map((t) =>
+          getPrecoAtual({
+            nome: t.nome,
+            preco: Number(t.preco),
+            descricao: t.descricao,
+            lotes: (t.lotes ?? []) as Lote[],
+          }),
+        ),
+      )
+    : undefined;
+
   // Cota / estoque por tipo (só pagas contam)
   const estoque = await calcEstoquePorTipo(supabase, evento.id);
   const mostrarEstoque = evento.mostrar_estoque_publico ?? false;
@@ -142,6 +168,12 @@ export default async function EventoPublicPage({ params }: PageProps) {
 
   return (
     <>
+      <TrackViewContent
+        id={evento.slug}
+        nome={evento.nome}
+        valor={menorPreco}
+      />
+
       {/* ============ HERO ============ */}
       <section
         className="relative isolate overflow-hidden"
@@ -217,32 +249,90 @@ export default async function EventoPublicPage({ params }: PageProps) {
             </div>
           </div>
 
-          {/* Card lateral com os infos chave */}
-          <Card className="hidden border-white/30 bg-white/95 backdrop-blur lg:block">
-            <CardHeader>
-              <CardTitle style={{ color: cor }}>Resumo do evento</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <InfoLine icon={CalendarDays} label="Data">
-                {formatDate(evento.data_evento)}
-              </InfoLine>
-              {hora && (
-                <InfoLine icon={Clock} label="Horário">
-                  {hora}
+          {/* Palestrantes já no topo — é o que mais convence quem chega
+              pelo anúncio. Sem palestrantes cadastrados, cai no card de
+              resumo (só no desktop, como era antes). */}
+          {palestrantes.length > 0 ? (
+            <div className="rounded-3xl border border-white/25 bg-white/10 p-6 backdrop-blur">
+              <div className="text-xs font-semibold uppercase tracking-[0.2em] text-white/75">
+                Quem vai estar lá
+              </div>
+              <div className="mt-1 text-xl font-extrabold text-white">
+                Palestrantes
+              </div>
+              <div className="mt-6 flex flex-wrap justify-center gap-x-5 gap-y-6">
+                {palestrantes.map((p, i) => (
+                  <div
+                    key={i}
+                    className="flex w-24 flex-col items-center text-center"
+                  >
+                    <PessoaAvatar
+                      pessoa={p}
+                      cor={cor}
+                      corBorda="rgba(255,255,255,0.55)"
+                      className="size-20"
+                      sizes="80px"
+                    />
+                    <span className="mt-2 text-xs font-bold leading-snug text-white">
+                      {p.nome}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <Card className="hidden border-white/30 bg-white/95 backdrop-blur lg:block">
+              <CardHeader>
+                <CardTitle style={{ color: cor }}>Resumo do evento</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <InfoLine icon={CalendarDays} label="Data">
+                  {formatDate(evento.data_evento)}
                 </InfoLine>
-              )}
-              {evento.local && (
-                <InfoLine icon={MapPin} label="Local">
-                  {evento.local}
-                </InfoLine>
-              )}
-              {prazoData && (
-                <InfoLine icon={AlertCircle} label="Inscrições até">
-                  {formatDate(prazoData)}
-                </InfoLine>
-              )}
-            </CardContent>
-          </Card>
+                {hora && (
+                  <InfoLine icon={Clock} label="Horário">
+                    {hora}
+                  </InfoLine>
+                )}
+                {evento.local && (
+                  <InfoLine icon={MapPin} label="Local">
+                    {evento.local}
+                  </InfoLine>
+                )}
+                {prazoData && (
+                  <InfoLine icon={AlertCircle} label="Inscrições até">
+                    {formatDate(prazoData)}
+                  </InfoLine>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </section>
+
+      {/* ============ RESUMO (logo abaixo do hero) ============ */}
+      <section className="border-b border-border/60 bg-white py-8">
+        <div className="container mx-auto px-4">
+          <div className="mx-auto grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <ResumoItem icon={CalendarDays} label="Data" cor={cor}>
+              {formatDate(evento.data_evento)}
+            </ResumoItem>
+            {hora && (
+              <ResumoItem icon={Clock} label="Horário" cor={cor}>
+                {hora}
+              </ResumoItem>
+            )}
+            {evento.local && (
+              <ResumoItem icon={MapPin} label="Local" cor={cor}>
+                {evento.local}
+              </ResumoItem>
+            )}
+            {prazoData && (
+              <ResumoItem icon={AlertCircle} label="Inscrições até" cor={cor}>
+                {formatDate(prazoData)}
+              </ResumoItem>
+            )}
+          </div>
         </div>
       </section>
 
@@ -263,138 +353,26 @@ export default async function EventoPublicPage({ params }: PageProps) {
       )}
 
       {/* ============ PALESTRANTES ============ */}
-      {Array.isArray(evento.palestrantes) &&
-        evento.palestrantes.length > 0 && (
-          <section className="bg-white py-20">
-            <div className="container mx-auto max-w-5xl px-4">
-              <div className="mx-auto max-w-3xl text-center">
-                <SectionEyebrow cor={cor}>Quem vai estar lá</SectionEyebrow>
-                <h2
-                  className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl"
-                  style={{ color: cor }}
-                >
-                  Palestrantes
-                </h2>
-              </div>
-              <div className="mx-auto mt-12 grid max-w-4xl grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
-                {(
-                  evento.palestrantes as {
-                    nome: string;
-                    foto_url: string | null;
-                  }[]
-                ).map((p, i) => {
-                  const iniciais = p.nome
-                    .split(" ")
-                    .filter(Boolean)
-                    .slice(0, 2)
-                    .map((w) => w[0])
-                    .join("")
-                    .toUpperCase();
-                  return (
-                    <div
-                      key={i}
-                      className="flex flex-col items-center text-center"
-                    >
-                      <div
-                        className="relative size-28 overflow-hidden rounded-full border-4 shadow-float"
-                        style={{ borderColor: `${cor}33` }}
-                      >
-                        {p.foto_url ? (
-                          <Image
-                            src={p.foto_url}
-                            alt={p.nome}
-                            fill
-                            sizes="112px"
-                            className="object-cover"
-                          />
-                        ) : (
-                          <div
-                            className="grid size-full place-items-center text-white"
-                            style={{ background: cor }}
-                          >
-                            <span className="text-2xl font-extrabold">
-                              {iniciais}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                      <span className="mt-4 text-sm font-bold leading-snug text-foreground">
-                        {p.nome}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </section>
-        )}
+      {palestrantes.length > 0 && (
+        <PessoasSection
+          eyebrow="Quem vai estar lá"
+          titulo="Palestrantes"
+          pessoas={palestrantes}
+          cor={cor}
+          className="bg-white py-20"
+        />
+      )}
 
       {/* ============ MOMENTO ARTÍSTICO ============ */}
-      {Array.isArray(evento.momento_artistico) &&
-        evento.momento_artistico.length > 0 && (
-          <section className="bg-neel-blue-50/30 py-20">
-            <div className="container mx-auto max-w-5xl px-4">
-              <div className="mx-auto max-w-3xl text-center">
-                <SectionEyebrow cor={cor}>Apresentações</SectionEyebrow>
-                <h2
-                  className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl"
-                  style={{ color: cor }}
-                >
-                  Momento Artístico
-                </h2>
-              </div>
-              <div className="mx-auto mt-12 grid max-w-4xl grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
-                {(
-                  evento.momento_artistico as {
-                    nome: string;
-                    foto_url: string | null;
-                  }[]
-                ).map((p, i) => {
-                  const iniciais = p.nome
-                    .split(" ")
-                    .filter(Boolean)
-                    .slice(0, 2)
-                    .map((w) => w[0])
-                    .join("")
-                    .toUpperCase();
-                  return (
-                    <div
-                      key={i}
-                      className="flex flex-col items-center text-center"
-                    >
-                      <div
-                        className="relative size-28 overflow-hidden rounded-full border-4 shadow-float"
-                        style={{ borderColor: `${cor}33` }}
-                      >
-                        {p.foto_url ? (
-                          <Image
-                            src={p.foto_url}
-                            alt={p.nome}
-                            fill
-                            sizes="112px"
-                            className="object-cover"
-                          />
-                        ) : (
-                          <div
-                            className="grid size-full place-items-center text-white"
-                            style={{ background: cor }}
-                          >
-                            <span className="text-2xl font-extrabold">
-                              {iniciais}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                      <span className="mt-4 text-sm font-bold leading-snug text-foreground">
-                        {p.nome}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </section>
-        )}
+      {momentoArtistico.length > 0 && (
+        <PessoasSection
+          eyebrow="Apresentações"
+          titulo="Momento Artístico"
+          pessoas={momentoArtistico}
+          cor={cor}
+          className="bg-neel-blue-50/30 py-20"
+        />
+      )}
 
       {/* ============ O QUE ESTÁ INCLUÍDO (antiga "destinação") ============ */}
       {evento.destinacao_valores && (
@@ -419,44 +397,6 @@ export default async function EventoPublicPage({ params }: PageProps) {
           </div>
         </section>
       )}
-
-      {/* ============ INFO CARDS ============ */}
-      <section
-        className="border-y border-border/60 py-16"
-        style={{ background: corFundoSuave }}
-      >
-        <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-3xl text-center">
-            <SectionEyebrow cor={cor}>Informações</SectionEyebrow>
-            <h2
-              className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl"
-              style={{ color: cor }}
-            >
-              Tudo o que você precisa saber
-            </h2>
-          </div>
-          <div className="mx-auto mt-10 grid max-w-5xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <InfoCard icon={CalendarDays} label="Data" cor={cor}>
-              {formatDate(evento.data_evento)}
-            </InfoCard>
-            {hora && (
-              <InfoCard icon={Clock} label="Horário" cor={cor}>
-                {hora}
-              </InfoCard>
-            )}
-            {evento.local && (
-              <InfoCard icon={MapPin} label="Local" cor={cor}>
-                {evento.local}
-              </InfoCard>
-            )}
-            {prazoData && (
-              <InfoCard icon={AlertCircle} label="Inscrições até" cor={cor}>
-                {formatDate(prazoData)}
-              </InfoCard>
-            )}
-          </div>
-        </div>
-      </section>
 
       {/* ============ IMPORTANTE ============ */}
       {evento.infos_importantes && evento.infos_importantes.length > 0 && (
@@ -755,7 +695,8 @@ function InfoLine({
   );
 }
 
-function InfoCard({
+/** Linha compacta do resumo que fica logo abaixo do hero. */
+function ResumoItem({
   icon: Icon,
   label,
   cor,
@@ -767,22 +708,117 @@ function InfoCard({
   children: React.ReactNode;
 }) {
   return (
-    <Card className="text-center">
-      <CardHeader>
+    <div
+      className="flex items-center gap-3 rounded-2xl border-2 px-4 py-3"
+      style={{ borderColor: `${cor}26`, background: `${cor}0D` }}
+    >
+      <div
+        className="grid size-10 shrink-0 place-items-center rounded-xl text-white"
+        style={{ background: cor }}
+      >
+        <Icon className="size-5" />
+      </div>
+      <div className="min-w-0">
+        <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          {label}
+        </div>
+        <div className="text-sm font-bold text-foreground">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+interface Pessoa {
+  nome: string;
+  foto_url: string | null;
+}
+
+/** Foto redonda com fallback nas iniciais. */
+function PessoaAvatar({
+  pessoa,
+  cor,
+  corBorda,
+  className = "size-28",
+  sizes = "112px",
+}: {
+  pessoa: Pessoa;
+  cor: string;
+  /** Cor da borda; padrão é a cor do evento com transparência. */
+  corBorda?: string;
+  className?: string;
+  sizes?: string;
+}) {
+  const iniciais = pessoa.nome
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+
+  return (
+    <div
+      className={`relative overflow-hidden rounded-full border-4 shadow-float ${className}`}
+      style={{ borderColor: corBorda ?? `${cor}33` }}
+    >
+      {pessoa.foto_url ? (
+        <Image
+          src={pessoa.foto_url}
+          alt={pessoa.nome}
+          fill
+          sizes={sizes}
+          className="object-cover"
+        />
+      ) : (
         <div
-          className="mx-auto grid size-12 place-items-center rounded-2xl text-white shadow-float"
+          className="grid size-full place-items-center text-white"
           style={{ background: cor }}
         >
-          <Icon className="size-5" />
+          <span className="text-lg font-extrabold">{iniciais}</span>
         </div>
-        <CardDescription className="mt-3 text-xs font-semibold uppercase tracking-wide">
-          {label}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm font-semibold text-foreground">{children}</p>
-      </CardContent>
-    </Card>
+      )}
+    </div>
+  );
+}
+
+/** Seção de grade de pessoas (palestrantes / momento artístico). */
+function PessoasSection({
+  eyebrow,
+  titulo,
+  pessoas,
+  cor,
+  className,
+}: {
+  eyebrow: string;
+  titulo: string;
+  pessoas: Pessoa[];
+  cor: string;
+  className: string;
+}) {
+  return (
+    <section className={className}>
+      <div className="container mx-auto max-w-5xl px-4">
+        <div className="mx-auto max-w-3xl text-center">
+          <SectionEyebrow cor={cor}>{eyebrow}</SectionEyebrow>
+          <h2
+            className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl"
+            style={{ color: cor }}
+          >
+            {titulo}
+          </h2>
+        </div>
+        <div className="mx-auto mt-12 grid max-w-4xl grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-4">
+          {pessoas.map((p, i) => (
+            <div key={i} className="flex flex-col items-center text-center">
+              <PessoaAvatar pessoa={p} cor={cor} />
+              <span className="mt-4 text-sm font-bold leading-snug text-foreground">
+                {p.nome}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
