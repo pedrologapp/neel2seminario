@@ -253,27 +253,27 @@ export default async function EventoPublicPage({ params }: PageProps) {
               pelo anúncio. Sem palestrantes cadastrados, cai no card de
               resumo (só no desktop, como era antes). */}
           {palestrantes.length > 0 ? (
-            <div className="rounded-3xl border border-white/25 bg-white/10 p-6 backdrop-blur">
+            <div className="rounded-3xl border border-white/25 bg-white/10 p-6 text-center backdrop-blur sm:p-8">
               <div className="text-xs font-semibold uppercase tracking-[0.2em] text-white/75">
                 Quem vai estar lá
               </div>
-              <div className="mt-1 text-xl font-extrabold text-white">
+              <div className="mt-1 text-2xl font-extrabold text-white">
                 Palestrantes
               </div>
-              <div className="mt-6 flex flex-wrap justify-center gap-x-5 gap-y-6">
+              <div className="mt-7 flex flex-wrap justify-center gap-x-6 gap-y-8">
                 {palestrantes.map((p, i) => (
                   <div
                     key={i}
-                    className="flex w-24 flex-col items-center text-center"
+                    className="flex w-36 flex-col items-center text-center sm:w-40"
                   >
                     <PessoaAvatar
                       pessoa={p}
                       cor={cor}
-                      corBorda="rgba(255,255,255,0.55)"
-                      className="size-20"
-                      sizes="80px"
+                      corBorda="rgba(255,255,255,0.6)"
+                      className="size-32 sm:size-36"
+                      sizes="(min-width: 640px) 144px, 128px"
                     />
-                    <span className="mt-2 text-xs font-bold leading-snug text-white">
+                    <span className="mt-3 text-base font-bold leading-snug text-white">
                       {p.nome}
                     </span>
                   </div>
@@ -774,7 +774,7 @@ function PessoaAvatar({
           className="grid size-full place-items-center text-white"
           style={{ background: cor }}
         >
-          <span className="text-lg font-extrabold">{iniciais}</span>
+          <span className="text-2xl font-extrabold">{iniciais}</span>
         </div>
       )}
     </div>
