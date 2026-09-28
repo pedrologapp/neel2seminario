@@ -47,7 +47,53 @@ export interface EstadoDivulgacao {
   config: ConfigDivulgacao;
   grupos: GrupoDivulgacao[];
   envios: EnvioDivulgacao[];
+  /** Dia (AAAA-MM-DD) já iniciado pelo n8n: trava para nunca enviar duas vezes no mesmo dia. */
+  rodadas: Record<string, { iniciado_em: string }>;
   atualizado_em: string | null;
+}
+
+export interface DiaDivulgacao {
+  dia: string; // AAAA-MM-DD
+  horario: string; // HH:MM
+  tipo: "flyer" | "video";
+}
+
+/** Sorteio com semente: o mesmo dia sempre dá o mesmo horário (o calendário não muda sozinho). */
+function sorteio(semente: string) {
+  let h = 2166136261;
+  for (const c of semente) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+  return ((h >>> 0) % 100000) / 100000;
+}
+
+/**
+ * Calendário: do início ao fim, todo dia ou dia sim/dia não; horário sorteado
+ * entre 07:00 e 20:30 (de 10 em 10 min); alterna flyer e vídeo (se só houver
+ * um dos dois, usa sempre ele).
+ */
+export function calendario(c: ConfigDivulgacao): DiaDivulgacao[] {
+  if (!c.inicio || !c.fim) return [];
+  const tipos: ("flyer" | "video")[] = [c.flyer_url ? "flyer" : null, c.video_url ? "video" : null].filter(Boolean) as ("flyer" | "video")[];
+  if (!tipos.length) return [];
+  const out: DiaDivulgacao[] = [];
+  const d = new Date(`${c.inicio}T12:00:00Z`);
+  const fim = new Date(`${c.fim}T12:00:00Z`);
+  let i = 0;
+  while (d <= fim && out.length < 120) {
+    const dia = d.toISOString().slice(0, 10);
+    const slots = (20 * 60 + 30 - 7 * 60) / 10; // 07:00..20:30
+    const m = 7 * 60 + Math.floor(sorteio(`neel-${dia}`) * (slots + 1)) * 10;
+    out.push({ dia, horario: `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`, tipo: tipos[i % tipos.length] });
+    i++;
+    d.setUTCDate(d.getUTCDate() + (c.ritmo === "alternado" ? 2 : 1));
+  }
+  return out;
+}
+
+/** Data e hora de agora em Natal (America/Fortaleza). */
+export function agoraNatal() {
+  const p = new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Fortaleza", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date());
+  const [dia, hora] = p.split(" ");
+  return { dia, hora: hora.slice(0, 5) };
 }
 
 const BUCKET = "divulgacao-dados";
@@ -68,6 +114,7 @@ const PADRAO: EstadoDivulgacao = {
   },
   grupos: [],
   envios: [],
+  rodadas: {},
   atualizado_em: null,
 };
 
@@ -104,6 +151,7 @@ export async function lerEstado(): Promise<EstadoDivulgacao> {
     config: { ...PADRAO.config, ...(salvo.config ?? {}) },
     grupos: salvo.grupos ?? [],
     envios: salvo.envios ?? [],
+    rodadas: salvo.rodadas ?? {},
     atualizado_em: salvo.atualizado_em ?? null,
   };
 }

@@ -5,7 +5,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Loader2, Pause, Play, RefreshCw, Search, Upload, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import type { ConfigDivulgacao, EnvioDivulgacao, GrupoDivulgacao } from "@/lib/divulgacao";
+import type { ConfigDivulgacao, DiaDivulgacao, EnvioDivulgacao, GrupoDivulgacao } from "@/lib/divulgacao";
 import { atualizarGrupos, marcarGrupo, prepararUpload, salvarConfig, salvarMaterial } from "./actions";
 
 type Grupo = GrupoDivulgacao & { sugerido: boolean };
@@ -61,7 +61,7 @@ function Material({ tipo, url }: { tipo: "flyer" | "video"; url: string | null }
   );
 }
 
-export function PainelDivulgacao({ config, grupos, envios }: { config: ConfigDivulgacao; grupos: Grupo[]; envios: EnvioDivulgacao[] }) {
+export function PainelDivulgacao({ config, grupos, envios, calendario, hoje }: { config: ConfigDivulgacao; grupos: Grupo[]; envios: EnvioDivulgacao[]; calendario: DiaDivulgacao[]; hoje: string }) {
   const router = useRouter();
   const [f, setF] = useState({
     ativo: config.ativo,
@@ -138,9 +138,9 @@ export function PainelDivulgacao({ config, grupos, envios }: { config: ConfigDiv
           <label className="block font-semibold">Link de inscrição (opcional)
             <input value={f.link} onChange={(e) => setF({ ...f, link: e.target.value })} className={campo} placeholder="https://neel2seminario.vercel.app" />
           </label>
-          <label className="block font-semibold">Horários (um por dia, em rodízio)
-            <input value={f.horarios} onChange={(e) => setF({ ...f, horarios: e.target.value })} className={campo} />
-          </label>
+          <div className="block font-semibold">Horário
+            <p className="mt-1 rounded-lg bg-muted/50 px-3 py-2 text-sm font-normal text-muted-foreground">Sorteado a cada dia, entre 7h e 20h30. Veja no calendário abaixo.</p>
+          </div>
           <label className="block font-semibold">Começa em
             <input type="date" value={f.inicio} onChange={(e) => setF({ ...f, inicio: e.target.value })} className={campo} />
           </label>
@@ -205,6 +205,32 @@ export function PainelDivulgacao({ config, grupos, envios }: { config: ConfigDiv
               </li>
             ))}
             {lista.length === 0 && <li className="py-6 text-center text-sm text-muted-foreground">Nenhum grupo neste filtro.</li>}
+          </ul>
+        )}
+      </section>
+
+      {/* Calendário */}
+      <section className="rounded-2xl border border-border/60 bg-white p-5">
+        <p className="font-bold text-neel-blue">Calendário ({calendario.length} dias)</p>
+        {calendario.length === 0 ? (
+          <p className="mt-3 text-sm text-muted-foreground">Defina início, fim e o material para ver o calendário.</p>
+        ) : (
+          <ul className="mt-3 grid gap-1.5 text-sm sm:grid-cols-2 lg:grid-cols-3">
+            {calendario.map((c) => {
+              const feitos = envios.filter((e) => e.dia === c.dia);
+              const ok = feitos.some((e) => e.status === "enviado");
+              const passou = c.dia < hoje;
+              return (
+                <li key={c.dia} className={`flex items-center gap-2 rounded-lg px-3 py-2 ${c.dia === hoje ? "bg-neel-yellow-50 ring-1 ring-neel-yellow" : "bg-muted/40"}`}>
+                  <span className="tabular-nums font-semibold">{c.dia.slice(8, 10)}/{c.dia.slice(5, 7)}</span>
+                  <span className="tabular-nums text-muted-foreground">{c.horario}</span>
+                  <span className={`rounded px-1.5 py-0.5 text-[11px] font-bold uppercase ${c.tipo === "video" ? "bg-neel-blue-50 text-neel-blue" : "bg-neel-yellow-50 text-neel-yellow-dark"}`}>{c.tipo === "video" ? "vídeo" : "flyer"}</span>
+                  <span className={`ml-auto text-xs font-semibold ${ok ? "text-emerald-700" : passou ? "text-red-700" : "text-muted-foreground"}`}>
+                    {ok ? `enviado (${feitos.filter((e) => e.status === "enviado").length})` : passou ? "não enviado" : c.dia === hoje ? "hoje" : "agendado"}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

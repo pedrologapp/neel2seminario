@@ -1,4 +1,4 @@
-import { carregarDivulgacao, sugerido } from "@/lib/divulgacao";
+import { agoraNatal, calendario, carregarDivulgacao, sugerido } from "@/lib/divulgacao";
 import { PainelDivulgacao } from "./painel";
 
 /**
@@ -29,6 +29,8 @@ export default async function DivulgacaoPage() {
           config={d.config}
           grupos={d.grupos.map((g) => ({ ...g, sugerido: sugerido(g.nome) }))}
           envios={d.envios}
+          calendario={calendario(d.config)}
+          hoje={agoraNatal().dia}
         />
       )}
     </div>
