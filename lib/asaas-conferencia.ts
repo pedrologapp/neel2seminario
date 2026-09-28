@@ -29,6 +29,7 @@ export interface PagamentoAsaas {
   conta: Conta;
   status: string; // RECEIVED = entrou na conta; CONFIRMED = cartão aprovado, a cair
   valor: number;
+  liquido: number; // depois da taxa do Asaas
   recebidoEm: string | null;
   previstoEm: string | null;
   forma: string | null;
@@ -40,6 +41,7 @@ export interface PagamentoAsaas {
 interface Bruto {
   id: string;
   value: number;
+  netValue?: number | null;
   status: string;
   billingType?: string;
   description?: string | null;
@@ -104,6 +106,7 @@ export async function conferirAsaas(fresco = false): Promise<Conferencia> {
           conta: c.conta,
           status: p.status,
           valor: p.value,
+          liquido: p.netValue ?? p.value,
           recebidoEm: p.status === "CONFIRMED" ? null : (p.paymentDate ?? p.clientPaymentDate ?? null)?.slice(0, 10) ?? null,
           previstoEm: p.status === "CONFIRMED" ? (p.estimatedCreditDate ?? p.confirmedDate ?? null)?.slice(0, 10) ?? null : null,
           forma: p.billingType ?? null,

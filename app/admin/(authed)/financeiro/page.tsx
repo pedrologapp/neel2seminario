@@ -1,164 +1,134 @@
 import Link from "next/link";
-import { ArrowDownLeft, ArrowUpRight, Landmark, Percent, RefreshCw, School } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Clock, Landmark, Percent, RefreshCw, School } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { ValorSensivel } from "@/components/admin/valores-sensiveis";
-import { ROTULO_TIPO, carregarFinanceiro, porMes, resumir, type Categoria } from "@/lib/financeiro";
+import { EVENTO, carregarFinanceiro, pagante, porMes, somar } from "@/lib/financeiro";
 
 /**
- * Financeiro do NEEL: quanto entrou, quanto foi de taxa e quanto foi retirado
- * da conta do Asaas, mês a mês, e o acerto com a conta da Escola (08–28/09).
- * Só leitura: nada aqui altera o Asaas.
+ * Financeiro do 2º Seminário: o que entrou (bruto, taxas, líquido) nas duas
+ * contas do Asaas, mês a mês, e as retiradas da conta do NEEL desde o início
+ * das vendas. Só leitura: nada aqui altera o Asaas.
  */
 export const metadata = { title: "Financeiro · Admin NEEL" };
 export const dynamic = "force-dynamic";
 
 const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
-const nomeMes = (m: string) => `${MESES[Number(m.slice(5, 7)) - 1]} de ${m.slice(0, 4)}`;
+const nomeMes = (m: string) => (/^\d{4}-\d{2}$/.test(m) ? `${MESES[Number(m.slice(5, 7)) - 1]} de ${m.slice(0, 4)}` : m);
 const data = (d: string | null) => (d ? d.split("-").reverse().join("/") : "—");
 const R = ({ v }: { v: number }) => <ValorSensivel valor={formatCurrency(v)} />;
-const COR: Record<Categoria, string> = {
-  recebido: "text-emerald-700",
-  taxa: "text-amber-700",
-  retirada: "text-red-700",
-  outro: "text-muted-foreground",
-};
+const FORMA: Record<string, string> = { PIX: "Pix", CREDIT_CARD: "Cartão", BOLETO: "Boleto", UNDEFINED: "—" };
 
-export default async function FinanceiroPage({ searchParams }: { searchParams: Promise<{ ano?: string; fresco?: string }> }) {
-  const { ano: anoParam, fresco } = await searchParams;
+export default async function FinanceiroPage({ searchParams }: { searchParams: Promise<{ fresco?: string }> }) {
+  const { fresco } = await searchParams;
   const f = await carregarFinanceiro(fresco === "1");
-  const anos = [...new Set(f.movimentos.map((m) => m.data.slice(0, 4)))].sort().reverse();
-  const anoAtual = new Date().getFullYear().toString();
-  const ano = anoParam === "tudo" ? "tudo" : anoParam && anos.includes(anoParam) ? anoParam : anos.includes(anoAtual) ? anoAtual : anos[0] ?? anoAtual;
-  const movs = ano === "tudo" ? f.movimentos : f.movimentos.filter((m) => m.data.startsWith(ano));
-  const total = resumir(movs);
-  const meses = porMes(movs);
-  const retiradas = movs.filter((m) => m.categoria === "retirada");
-  const liquido = total.recebido + total.taxas + total.outros;
-
-  const aba = (v: string, t: string) => (
-    <Link
-      key={v}
-      href={`/admin/financeiro?ano=${v}`}
-      className={`rounded-xl px-3 py-1.5 text-sm font-semibold ${ano === v ? "bg-neel-blue text-white" : "bg-neel-blue-50 text-neel-blue hover:bg-neel-blue-50/70"}`}
-    >
-      {t}
-    </Link>
-  );
+  const recebidos = f.pagamentos.filter((p) => p.recebidoEm);
+  const aCair = f.pagamentos.filter((p) => !p.recebidoEm);
+  const tot = somar(recebidos);
+  const tCair = somar(aCair);
+  const naEscola = somar(f.pagamentos.filter((p) => p.conta === "escola"));
+  const naNeel = somar(recebidos.filter((p) => p.conta === "neel"));
+  const retirado = f.retiradas.reduce((s, r) => s + r.valor, 0);
+  const meses = porMes(f.pagamentos);
+  const lista = [...f.pagamentos].sort((a, b) => (b.recebidoEm ?? b.previstoEm ?? "").localeCompare(a.recebidoEm ?? a.previstoEm ?? ""));
 
   return (
     <div className="container mx-auto px-4 py-10">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-neel-blue sm:text-4xl">Financeiro</h1>
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{EVENTO}</p>
+          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-neel-blue sm:text-4xl">Financeiro</h1>
           <p className="mt-1 max-w-2xl text-muted-foreground">
-            O que entrou, o que foi de taxa e o que foi retirado da conta do NEEL no Asaas, mês a mês. Só leitura: nada aqui mexe no Asaas.
+            Tudo o que entrou do seminário nas duas contas do Asaas (a do NEEL e a da Escola, de 08/09 a 28/09), as taxas e o que foi retirado. Só leitura: nada aqui mexe no Asaas.
           </p>
         </div>
-        <Link href={`/admin/financeiro?ano=${ano}&fresco=1`} className="inline-flex items-center gap-2 self-start rounded-xl border border-border bg-white px-3 py-2 text-sm font-semibold text-neel-blue hover:bg-neel-blue-50">
+        <Link href="/admin/financeiro?fresco=1" className="inline-flex items-center gap-2 self-start rounded-xl border border-border bg-white px-3 py-2 text-sm font-semibold text-neel-blue hover:bg-neel-blue-50">
           <RefreshCw className="size-4" /> Atualizar agora
         </Link>
       </header>
 
-      {!f.ok && (
-        <p className="mt-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Não consegui ler o extrato da conta do NEEL: {f.erro}
-        </p>
+      {(f.contas.some((c) => !c.ok) || f.erroExtrato) && (
+        <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          {f.contas.filter((c) => !c.ok).map((c) => <p key={c.conta}><b>{c.rotulo}:</b> {c.erro}</p>)}
+          {f.erroExtrato && <p><b>Extrato da conta do NEEL:</b> {f.erroExtrato}</p>}
+        </div>
       )}
 
-      <div className="mt-6 flex flex-wrap gap-2">
-        {anos.map((a) => aba(a, a))}
-        {anos.length > 1 && aba("tudo", "Tudo")}
-      </div>
-
-      {/* Resumo do período */}
-      <section className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl bg-neel-blue p-4 text-white">
-          <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest opacity-80"><Landmark className="size-3.5" /> Saldo hoje na conta</p>
-          <p className="mt-1 text-3xl font-extrabold tabular-nums">{f.saldoAtual !== null ? <R v={f.saldoAtual} /> : "—"}</p>
-          <p className="text-xs opacity-80">Conta do NEEL no Asaas</p>
-        </div>
-        <div className="rounded-2xl border border-border/60 bg-white p-4">
-          <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-muted-foreground"><ArrowDownLeft className="size-3.5" /> Entrou {ano === "tudo" ? "" : `em ${ano}`}</p>
-          <p className="mt-1 text-2xl font-extrabold tabular-nums text-emerald-700"><R v={total.recebido} /></p>
-          <p className="text-xs text-muted-foreground">Recebimentos (Pix, cartão, boleto)</p>
+          <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest opacity-80"><ArrowDownLeft className="size-3.5" /> Entrou do seminário</p>
+          <p className="mt-1 text-3xl font-extrabold tabular-nums"><R v={tot.bruto} /></p>
+          <p className="text-xs opacity-80">{tot.n} pagamento(s) recebido(s), nas duas contas</p>
         </div>
         <div className="rounded-2xl border border-border/60 bg-white p-4">
           <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-muted-foreground"><Percent className="size-3.5" /> Taxas do Asaas</p>
-          <p className="mt-1 text-2xl font-extrabold tabular-nums text-amber-700"><R v={-total.taxas} /></p>
-          <p className="text-xs text-muted-foreground">Líquido depois das taxas: <R v={liquido} /></p>
+          <p className="mt-1 text-2xl font-extrabold tabular-nums text-amber-700"><R v={tot.taxas} /></p>
+          <p className="text-xs text-muted-foreground">Líquido: <b><R v={tot.liquido} /></b></p>
         </div>
         <div className="rounded-2xl border border-border/60 bg-white p-4">
-          <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-muted-foreground"><ArrowUpRight className="size-3.5" /> Retirado</p>
-          <p className="mt-1 text-2xl font-extrabold tabular-nums text-red-700"><R v={-total.retirado} /></p>
-          <p className="text-xs text-muted-foreground">{retiradas.length} transferência(s) para fora da conta</p>
+          <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-muted-foreground"><Clock className="size-3.5" /> A cair (cartão)</p>
+          <p className="mt-1 text-2xl font-extrabold tabular-nums text-neel-blue"><R v={tCair.bruto} /></p>
+          <p className="text-xs text-muted-foreground">{tCair.n} parcela(s) aprovada(s), ainda não creditada(s)</p>
+        </div>
+        <div className="rounded-2xl border border-border/60 bg-white p-4">
+          <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-muted-foreground"><ArrowUpRight className="size-3.5" /> Retirado da conta do NEEL</p>
+          <p className="mt-1 text-2xl font-extrabold tabular-nums text-red-700"><R v={retirado} /></p>
+          <p className="text-xs text-muted-foreground">
+            Desde {data(f.inicio)} · saldo hoje {f.saldoAtual !== null ? <R v={f.saldoAtual} /> : "—"}
+          </p>
         </div>
       </section>
 
-      {/* Acerto com a Escola */}
-      <section className="mt-6 rounded-2xl border border-amber-300 bg-amber-50 p-4">
-        <p className="flex items-center gap-2 font-bold text-amber-900"><School className="size-4" /> Na conta da Escola Amadeus (08/09 a 28/09)</p>
-        {f.escola.ok ? (
-          <>
-            <p className="mt-1 text-sm text-amber-900">
-              {f.escola.pagamentos.length} pagamento(s) do seminário caíram na conta da escola, somando <b className="tabular-nums"><R v={f.escola.total} /></b>. É o valor a acertar entre a escola e o NEEL (antes das taxas do Asaas).
-            </p>
-            {f.escola.pagamentos.length > 0 && (
-              <details className="mt-2 text-sm">
-                <summary className="cursor-pointer font-semibold text-amber-900">Ver os pagamentos</summary>
-                <ul className="mt-2 space-y-1">
-                  {[...f.escola.pagamentos].sort((a, b) => (a.recebidoEm ?? a.previstoEm ?? "").localeCompare(b.recebidoEm ?? b.previstoEm ?? "")).map((p) => (
-                    <li key={p.id} className="flex flex-wrap justify-between gap-2 rounded-lg bg-white px-3 py-1.5">
-                      <span>{data(p.recebidoEm ?? p.previstoEm)} · {p.descricao ?? "—"}{p.recebidoEm ? "" : " · a cair (cartão)"}</span>
-                      <span className="font-semibold tabular-nums"><R v={p.valor} /></span>
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            )}
-          </>
-        ) : (
-          <p className="mt-1 text-sm text-amber-900">Não consegui ler a conta da escola: {f.escola.erro ?? "sem acesso"}.</p>
-        )}
+      {/* Onde está o dinheiro */}
+      <section className="mt-4 grid gap-3 md:grid-cols-2">
+        <div className="rounded-2xl border border-border/60 bg-white p-4">
+          <p className="flex items-center gap-2 font-bold text-neel-blue"><Landmark className="size-4" /> Na conta do NEEL</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Recebido: <b className="text-foreground"><R v={naNeel.bruto} /></b> · líquido <R v={naNeel.liquido} /> ({naNeel.n} pagamento(s))
+          </p>
+        </div>
+        <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4">
+          <p className="flex items-center gap-2 font-bold text-amber-900"><School className="size-4" /> Na conta da Escola Amadeus (08/09 a 28/09)</p>
+          <p className="mt-1 text-sm text-amber-900">
+            <b><R v={naEscola.bruto} /></b> · líquido <R v={naEscola.liquido} /> ({naEscola.n} pagamento(s)). É o valor a acertar entre a escola e o NEEL.
+          </p>
+        </div>
       </section>
 
       {/* Mês a mês */}
       <section className="mt-8">
         <h2 className="text-lg font-extrabold text-neel-blue">Mês a mês</h2>
         <div className="mt-3 overflow-x-auto rounded-2xl border border-border/60 bg-white">
-          <table className="w-full min-w-[720px] text-sm">
+          <table className="w-full min-w-[600px] text-sm">
             <thead>
               <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <th className="px-4 py-2">Mês</th>
-                <th className="px-4 py-2 text-right">Entrou</th>
+                <th className="px-4 py-2 text-right">Pagamentos</th>
+                <th className="px-4 py-2 text-right">Bruto</th>
                 <th className="px-4 py-2 text-right">Taxas</th>
-                <th className="px-4 py-2 text-right">Retirado</th>
-                <th className="px-4 py-2 text-right">Outros</th>
-                <th className="px-4 py-2 text-right">Saldo no fim do mês</th>
+                <th className="px-4 py-2 text-right">Líquido</th>
               </tr>
             </thead>
             <tbody>
               {meses.map((m) => (
                 <tr key={m.mes} className="border-b last:border-0">
                   <td className="px-4 py-2 font-semibold capitalize">{nomeMes(m.mes)}</td>
-                  <td className="px-4 py-2 text-right tabular-nums text-emerald-700">{m.recebido ? <R v={m.recebido} /> : "—"}</td>
-                  <td className="px-4 py-2 text-right tabular-nums text-amber-700">{m.taxas ? <R v={-m.taxas} /> : "—"}</td>
-                  <td className="px-4 py-2 text-right tabular-nums text-red-700">{m.retirado ? <R v={-m.retirado} /> : "—"}</td>
-                  <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">{m.outros ? <R v={m.outros} /> : "—"}</td>
-                  <td className="px-4 py-2 text-right font-semibold tabular-nums">{m.saldoFinal !== null ? <R v={m.saldoFinal} /> : "—"}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{m.n}</td>
+                  <td className="px-4 py-2 text-right tabular-nums"><R v={m.bruto} /></td>
+                  <td className="px-4 py-2 text-right tabular-nums text-amber-700"><R v={m.taxas} /></td>
+                  <td className="px-4 py-2 text-right font-semibold tabular-nums text-emerald-700"><R v={m.liquido} /></td>
                 </tr>
               ))}
-              {meses.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">Nenhum movimento no período.</td></tr>
-              )}
+              {meses.length === 0 && <tr><td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">Nenhum pagamento do seminário ainda.</td></tr>}
             </tbody>
           </table>
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">&quot;Outros&quot; são antecipações de recebíveis e estornos. Taxas incluem a do pagamento, notificações e mensagens do Asaas.</p>
+        <p className="mt-2 text-xs text-muted-foreground">Parcelas de cartão ainda a cair entram no mês em que o Asaas prevê o crédito.</p>
       </section>
 
       {/* Retiradas */}
       <section className="mt-8">
-        <h2 className="text-lg font-extrabold text-neel-blue">Retiradas</h2>
+        <h2 className="text-lg font-extrabold text-neel-blue">Retiradas da conta do NEEL</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Transferências feitas desde o primeiro pagamento do seminário. A conta é a mesma dos outros eventos do NEEL.</p>
         <div className="mt-3 overflow-x-auto rounded-2xl border border-border/60 bg-white">
           <table className="w-full min-w-[560px] text-sm">
             <thead>
@@ -169,46 +139,53 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
               </tr>
             </thead>
             <tbody>
-              {retiradas.map((m) => (
-                <tr key={m.id} className="border-b last:border-0">
-                  <td className="px-4 py-2 tabular-nums">{data(m.data)}</td>
-                  <td className="px-4 py-2">{m.descricao || ROTULO_TIPO[m.tipo] || m.tipo}</td>
-                  <td className="px-4 py-2 text-right font-semibold tabular-nums text-red-700"><R v={-m.valor} /></td>
+              {f.retiradas.map((r) => (
+                <tr key={r.id} className="border-b last:border-0">
+                  <td className="px-4 py-2 tabular-nums">{data(r.data)}</td>
+                  <td className="px-4 py-2">{r.descricao || "Transferência"}</td>
+                  <td className="px-4 py-2 text-right font-semibold tabular-nums text-red-700"><R v={r.valor} /></td>
                 </tr>
               ))}
-              {retiradas.length === 0 && (
-                <tr><td colSpan={3} className="px-4 py-6 text-center text-muted-foreground">Nenhuma retirada no período.</td></tr>
-              )}
+              {f.retiradas.length === 0 && <tr><td colSpan={3} className="px-4 py-6 text-center text-muted-foreground">Nenhuma retirada no período.</td></tr>}
             </tbody>
           </table>
         </div>
       </section>
 
-      {/* Extrato completo, mês por mês */}
+      {/* Pagamentos */}
       <section className="mt-8">
-        <h2 className="text-lg font-extrabold text-neel-blue">Extrato</h2>
-        <div className="mt-3 space-y-2">
-          {meses.map((m) => (
-            <details key={m.mes} className="rounded-2xl border border-border/60 bg-white">
-              <summary className="cursor-pointer px-4 py-3 font-semibold capitalize">
-                {nomeMes(m.mes)} <span className="font-normal normal-case text-muted-foreground">· {m.n} movimento(s)</span>
-              </summary>
-              <ul className="divide-y border-t text-sm">
-                {m.movimentos.map((x) => (
-                  <li key={x.id} className="flex flex-wrap items-baseline justify-between gap-2 px-4 py-2">
-                    <span className="min-w-0 flex-1">
-                      <span className="tabular-nums text-muted-foreground">{data(x.data)}</span>{" "}
-                      <span className="font-medium">{ROTULO_TIPO[x.tipo] ?? x.tipo}</span>
-                      {x.descricao && <span className="block truncate text-xs text-muted-foreground">{x.descricao}</span>}
-                    </span>
-                    <span className={`font-semibold tabular-nums ${COR[x.categoria]}`}>
-                      {x.valor > 0 ? "+ " : "− "}<R v={Math.abs(x.valor)} />
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </details>
-          ))}
+        <h2 className="text-lg font-extrabold text-neel-blue">Pagamentos do seminário</h2>
+        <div className="mt-3 overflow-x-auto rounded-2xl border border-border/60 bg-white">
+          <table className="w-full min-w-[760px] text-sm">
+            <thead>
+              <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <th className="px-4 py-2">Data</th>
+                <th className="px-4 py-2">Quem pagou</th>
+                <th className="px-4 py-2">Forma</th>
+                <th className="px-4 py-2">Conta</th>
+                <th className="px-4 py-2 text-right">Bruto</th>
+                <th className="px-4 py-2 text-right">Líquido</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lista.map((p) => (
+                <tr key={p.id} className="border-b last:border-0">
+                  <td className="px-4 py-2 tabular-nums">
+                    {data(p.recebidoEm ?? p.previstoEm)}
+                    {!p.recebidoEm && <span className="ml-1 rounded bg-neel-blue-50 px-1.5 py-0.5 text-[10px] font-bold text-neel-blue">a cair</span>}
+                  </td>
+                  <td className="px-4 py-2">
+                    {pagante(p.descricao)}
+                    {p.parcela ? <span className="text-xs text-muted-foreground"> · parcela {p.parcela}</span> : null}
+                  </td>
+                  <td className="px-4 py-2">{FORMA[p.forma ?? "UNDEFINED"] ?? p.forma}</td>
+                  <td className="px-4 py-2">{p.conta === "escola" ? <span className="font-semibold text-amber-800">Escola</span> : "NEEL"}</td>
+                  <td className="px-4 py-2 text-right tabular-nums"><R v={p.valor} /></td>
+                  <td className="px-4 py-2 text-right tabular-nums"><R v={p.liquido} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
     </div>
