@@ -79,8 +79,8 @@ export function Capa({ d, logo, fotos, W, H }: { d: DadosIngressos; logo: string
   const pal = d.evento.palestrantes.slice(0, 3);
   return (
     <div style={{ display: "flex", width: W, height: H, position: "relative", background: COR.creme, fontFamily: "DM", color: COR.marrom, overflow: "hidden" }}>
-      <Arco w={px(1500)} h={px(760)} x={px(430)} y={px(-120)} espessura={px(26)} giro={-10} />
-      <Arco w={px(1500)} h={px(760)} x={px(470)} y={px(-90)} espessura={px(6)} cor={COR.areia} giro={-10} />
+      <Arco w={px(820)} h={px(1100)} x={px(900)} y={px(-100)} espessura={px(22)} giro={-10} />
+      <Arco w={px(820)} h={px(1100)} x={px(930)} y={px(-70)} espessura={px(6)} cor={COR.areia} giro={-10} />
       <div style={{ display: "flex", position: "absolute", left: px(1040), top: px(-260), width: px(1100), height: px(1420), borderRadius: "50%", background: `linear-gradient(160deg, ${COR.laranja} 0%, ${COR.laranjaForte} 100%)` }} />
 
       {/* texto à esquerda */}
@@ -128,7 +128,7 @@ export function PaginaResumo({ d, logo, W, H }: { d: DadosIngressos; logo: strin
   const hora = horaCurta(d.evento.hora);
   return (
     <div style={{ display: "flex", flexDirection: "column", width: W, height: H, position: "relative", background: COR.creme, fontFamily: "DM", color: COR.marrom, overflow: "hidden", padding: `${px(110)}px ${px(90)}px ${px(90)}px` }}>
-      <Arco w={px(1500)} h={px(900)} x={px(-260)} y={px(1320)} espessura={px(22)} giro={-8} />
+      <Arco w={px(820)} h={px(480)} x={px(560)} y={px(-190)} espessura={px(20)} giro={-12} />
       <img alt="" src={logo} width={px(380)} height={px(245)} />
       <span style={{ marginTop: px(90), fontSize: px(30), fontWeight: 800, letterSpacing: px(5), textTransform: "uppercase", color: COR.laranjaForte }}>Seus ingressos</span>
       <span style={{ marginTop: px(14), fontFamily: "Serif", fontSize: px(92), lineHeight: 1.02 }}>{d.evento.nome}</span>
