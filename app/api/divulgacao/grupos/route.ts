@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { lerEstado, salvarEstado } from "@/lib/divulgacao";
 
 /**
  * O n8n manda aqui a lista de grupos do WhatsApp do Pedro (só leitura lá).
@@ -12,15 +12,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
   const body = (await req.json().catch(() => null)) as { grupos?: { id?: string; nome?: string }[] } | null;
-  const grupos = (body?.grupos ?? []).filter((g) => typeof g.id === "string" && g.id.endsWith("@g.us"));
-  if (!grupos.length) return NextResponse.json({ ok: true, recebidos: 0 });
+  const vindos = (body?.grupos ?? []).filter((g) => typeof g.id === "string" && g.id.endsWith("@g.us"));
+  if (!vindos.length) return NextResponse.json({ ok: true, recebidos: 0 });
 
-  const db = createAdminClient();
-  const agora = new Date().toISOString();
-  const { error } = await db.from("divulgacao_grupos").upsert(
-    grupos.map((g) => ({ chat_id: g.id as string, nome: (g.nome ?? "").slice(0, 200) || null, visto_em: agora, atualizado_em: agora })),
-    { onConflict: "chat_id", ignoreDuplicates: false },
-  );
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ ok: true, recebidos: grupos.length });
+  try {
+    const estado = await lerEstado();
+    const agora = new Date().toISOString();
+    const porId = new Map(estado.grupos.map((g) => [g.chat_id, g]));
+    for (const v of vindos) {
+      const atual = porId.get(v.id as string);
+      porId.set(v.id as string, {
+        chat_id: v.id as string,
+        nome: (v.nome ?? "").slice(0, 200) || atual?.nome || null,
+        divulgar: atual?.divulgar ?? false,
+        visto_em: agora,
+      });
+    }
+    estado.grupos = [...porId.values()];
+    await salvarEstado(estado);
+    return NextResponse.json({ ok: true, recebidos: vindos.length, total: estado.grupos.length });
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+  }
 }

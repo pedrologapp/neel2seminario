@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { lerEstado, salvarEstado } from "@/lib/divulgacao";
 
 async function logado() {
   const supabase = await createClient();
@@ -15,12 +16,17 @@ const HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 /** Liga/desliga a divulgação de um grupo. */
 export async function marcarGrupo(chatId: string, divulgar: boolean) {
   if (!(await logado())) return { ok: false, erro: "Sessão expirada." };
-  const { error } = await createAdminClient()
-    .from("divulgacao_grupos")
-    .update({ divulgar, atualizado_em: new Date().toISOString() })
-    .eq("chat_id", chatId);
-  revalidatePath("/admin/divulgacao");
-  return error ? { ok: false, erro: error.message } : { ok: true };
+  try {
+    const e = await lerEstado();
+    const g = e.grupos.find((x) => x.chat_id === chatId);
+    if (!g) return { ok: false, erro: "Grupo não encontrado." };
+    g.divulgar = divulgar;
+    await salvarEstado(e);
+    revalidatePath("/admin/divulgacao");
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, erro: (err as Error).message };
+  }
 }
 
 export interface ConfigForm {
@@ -43,9 +49,10 @@ export async function salvarConfig(f: ConfigForm) {
   if (!horarios.length) return { ok: false, erro: "Informe pelo menos um horário." };
   // Textos separados por uma linha com ---
   const textos = f.textos.split(/\n\s*---\s*\n/).map((t) => t.trim()).filter(Boolean);
-  const { error } = await createAdminClient()
-    .from("divulgacao_config")
-    .update({
+  try {
+    const e = await lerEstado();
+    e.config = {
+      ...e.config,
       ativo: f.ativo,
       ritmo: f.ritmo,
       inicio: f.inicio || null,
@@ -54,11 +61,13 @@ export async function salvarConfig(f: ConfigForm) {
       intervalo_min: Math.min(30, Math.max(1, Math.round(f.intervalo_min || 3))),
       textos,
       link: f.link.trim() || null,
-      atualizado_em: new Date().toISOString(),
-    })
-    .eq("id", 1);
-  revalidatePath("/admin/divulgacao");
-  return error ? { ok: false, erro: error.message } : { ok: true };
+    };
+    await salvarEstado(e);
+    revalidatePath("/admin/divulgacao");
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, erro: (err as Error).message };
+  }
 }
 
 /** Link para o navegador subir o flyer/vídeo direto no Storage (bucket "eventos"). */
@@ -76,12 +85,16 @@ export async function prepararUpload(tipo: "flyer" | "video", nomeArquivo: strin
 /** Grava a URL do material depois que o upload terminou (ou limpa com null). */
 export async function salvarMaterial(tipo: "flyer" | "video", url: string | null) {
   if (!(await logado())) return { ok: false, erro: "Sessão expirada." };
-  const { error } = await createAdminClient()
-    .from("divulgacao_config")
-    .update({ [tipo === "flyer" ? "flyer_url" : "video_url"]: url, atualizado_em: new Date().toISOString() })
-    .eq("id", 1);
-  revalidatePath("/admin/divulgacao");
-  return error ? { ok: false, erro: error.message } : { ok: true };
+  try {
+    const e = await lerEstado();
+    if (tipo === "flyer") e.config.flyer_url = url;
+    else e.config.video_url = url;
+    await salvarEstado(e);
+    revalidatePath("/admin/divulgacao");
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, erro: (err as Error).message };
+  }
 }
 
 /** Pede ao n8n para ler de novo os grupos do WhatsApp (só leitura lá). */
