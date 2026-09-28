@@ -3,6 +3,7 @@ import { ArrowDownLeft, ArrowUpRight, Clock, Landmark, Percent, RefreshCw, Schoo
 import { formatCurrency } from "@/lib/utils";
 import { ValorSensivel } from "@/components/admin/valores-sensiveis";
 import { EVENTO, carregarFinanceiro, pagante, porMes, somar } from "@/lib/financeiro";
+import { AbasFinanceiro } from "./abas";
 
 /**
  * Financeiro do 2º Seminário: o que entrou (bruto, taxas, líquido) nas duas
@@ -45,6 +46,7 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
           <RefreshCw className="size-4" /> Atualizar agora
         </Link>
       </header>
+      <div className="mt-4"><AbasFinanceiro atual="entradas" /></div>
 
       {(f.contas.some((c) => !c.ok) || f.erroExtrato) && (
         <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -122,7 +124,10 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
             </tbody>
           </table>
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">Parcelas de cartão ainda a cair entram no mês em que o Asaas prevê o crédito.</p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Parcelas de cartão ainda a cair entram no mês em que o Asaas prevê o crédito.
+          {f.testes.length > 0 && <> Fora da conta: {f.testes.length} pagamento(s) de teste do Pedro (<R v={somar(f.testes).bruto} />).</>}
+        </p>
       </section>
 
       {/* Retiradas */}

@@ -17,6 +17,8 @@ import { conferirAsaas, type PagamentoAsaas } from "@/lib/asaas-conferencia";
 const API = "https://www.asaas.com/api/v3";
 export const EVENTO = "2º Seminário Espírita do NEEL";
 const DO_EVENTO = /\b2\s*[ºo°]\s*semin[aá]rio/i;
+// Pagamentos de teste do Pedro (abril e junho): ficam fora dos totais e aparecem à parte.
+const TESTE = /pedro luciano/i;
 
 export interface Retirada {
   id: string;
@@ -26,7 +28,8 @@ export interface Retirada {
 }
 
 export interface FinanceiroEvento {
-  pagamentos: PagamentoAsaas[]; // só do evento, nas duas contas
+  pagamentos: PagamentoAsaas[]; // só do evento, nas duas contas, sem os testes
+  testes: PagamentoAsaas[];
   contas: { conta: string; rotulo: string; ok: boolean; erro?: string }[];
   inicio: string | null; // primeiro pagamento do evento
   saldoAtual: number | null;
@@ -52,11 +55,13 @@ export function pagante(descricao: string | null) {
 
 export async function carregarFinanceiro(fresco = false): Promise<FinanceiroEvento> {
   const c = await conferirAsaas(fresco);
-  const pagamentos = c.pagamentos.filter((p) => DO_EVENTO.test(p.descricao ?? ""));
+  const doEvento = c.pagamentos.filter((p) => DO_EVENTO.test(p.descricao ?? ""));
+  const testes = doEvento.filter((p) => TESTE.test(p.descricao ?? ""));
+  const pagamentos = doEvento.filter((p) => !TESTE.test(p.descricao ?? ""));
   const datas = pagamentos.map((p) => p.recebidoEm ?? p.previstoEm).filter(Boolean) as string[];
   const inicio = datas.length ? datas.sort()[0] : null;
 
-  const base: FinanceiroEvento = { pagamentos, contas: c.contas, inicio, saldoAtual: null, retiradas: [] };
+  const base: FinanceiroEvento = { pagamentos, testes, contas: c.contas, inicio, saldoAtual: null, retiradas: [] };
   const chave = process.env.ASAAS_API_KEY_NEEL;
   if (!chave) return { ...base, erroExtrato: "ASAAS_API_KEY_NEEL não configurada na Vercel." };
   try {
