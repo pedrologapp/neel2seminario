@@ -76,19 +76,30 @@ export function sugerido(nome: string | null) {
   return /neel|crenorte|fern\b|esp[ií]rit|kardec|evangelho|seminário esp/i.test(nome ?? "");
 }
 
+// Cada gravação é um arquivo NOVO (estado/<data>.json) e a leitura pega o mais
+// recente pela listagem: sobrescrever o mesmo arquivo fazia o CDN do Storage
+// devolver a versão antiga por alguns segundos (cliques "não pegavam").
+const PASTA = "estado";
+
+async function baixar(caminho: string) {
+  const { data, error } = await createAdminClient().storage.from(BUCKET).download(caminho);
+  if (error || !data) throw new Error(`Não consegui ler a divulgação: ${error?.message ?? "sem dados"}`);
+  return JSON.parse(await data.text()) as Partial<EstadoDivulgacao>;
+}
+
 export async function lerEstado(): Promise<EstadoDivulgacao> {
   const storage = createAdminClient().storage;
-  const { data, error } = await storage.from(BUCKET).download(ARQUIVO);
-  if (error && !/not.?found|does not exist|404/i.test(`${error.message} ${(error as { statusCode?: string }).statusCode ?? ""}`)) {
-    // Falha de leitura (rede etc.): não seguir com o estado vazio, senão um salvar apagaria tudo.
-    throw new Error(`Não consegui ler a divulgação: ${error.message}`);
+  const { data: lista, error } = await storage.from(BUCKET).list(PASTA, { limit: 1, sortBy: { column: "name", order: "desc" } });
+  if (error && !/not.?found|does not exist/i.test(error.message)) throw new Error(`Não consegui ler a divulgação: ${error.message}`);
+  let salvo: Partial<EstadoDivulgacao> | null = null;
+  if (lista?.length) salvo = await baixar(`${PASTA}/${lista[0].name}`);
+  else {
+    // Versão antiga (arquivo único), se existir; senão começa do zero.
+    const antigo = await storage.from(BUCKET).download(ARQUIVO);
+    if (antigo.data) salvo = JSON.parse(await antigo.data.text()) as Partial<EstadoDivulgacao>;
+    else await storage.createBucket(BUCKET, { public: false }).catch(() => null);
   }
-  if (error || !data) {
-    // Primeira vez: cria o bucket privado (se já existir, o erro é ignorado).
-    await storage.createBucket(BUCKET, { public: false }).catch(() => null);
-    return structuredClone(PADRAO);
-  }
-  const salvo = JSON.parse(await data.text()) as Partial<EstadoDivulgacao>;
+  if (!salvo) return structuredClone(PADRAO);
   return {
     config: { ...PADRAO.config, ...(salvo.config ?? {}) },
     grupos: salvo.grupos ?? [],
@@ -99,14 +110,20 @@ export async function lerEstado(): Promise<EstadoDivulgacao> {
 
 export async function salvarEstado(e: EstadoDivulgacao) {
   const storage = createAdminClient().storage;
-  const corpo = JSON.stringify({ ...e, envios: e.envios.slice(0, 500), atualizado_em: new Date().toISOString() });
-  const envio = () => storage.from(BUCKET).upload(ARQUIVO, new Blob([corpo], { type: "application/json" }), { upsert: true, contentType: "application/json", cacheControl: "0" });
+  const agora = new Date();
+  const corpo = JSON.stringify({ ...e, envios: e.envios.slice(0, 500), atualizado_em: agora.toISOString() });
+  const nome = `${PASTA}/${agora.toISOString().replace(/[:.]/g, "-")}-${Math.random().toString(36).slice(2, 7)}.json`;
+  const envio = () => storage.from(BUCKET).upload(nome, new Blob([corpo], { type: "application/json" }), { contentType: "application/json", cacheControl: "0" });
   let { error } = await envio();
   if (error && /bucket not found/i.test(error.message)) {
     await storage.createBucket(BUCKET, { public: false });
     ({ error } = await envio());
   }
   if (error) throw new Error(error.message);
+  // Guarda só as 30 versões mais recentes.
+  const { data: todas } = await storage.from(BUCKET).list(PASTA, { limit: 200, sortBy: { column: "name", order: "desc" } });
+  const velhas = (todas ?? []).slice(30).map((x) => `${PASTA}/${x.name}`);
+  if (velhas.length) await storage.from(BUCKET).remove(velhas);
 }
 
 export async function carregarDivulgacao() {
