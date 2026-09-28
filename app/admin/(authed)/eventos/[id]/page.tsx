@@ -110,8 +110,10 @@ export default async function EventoDetailPage({ params }: PageProps) {
 
   const estoque = await calcEstoquePorTipo(supabase, evento.id);
 
+  // Pagou no Asaas mas não foi marcado aqui (sem QR): conta à parte, não é "pendente".
+  const pagasSemQr = lista.filter((i) => i.status_pagamento !== "pago" && pagasAsaas.has(i.id));
   const totalPendentes = lista.filter(
-    (i) => i.status_pagamento === "pendente",
+    (i) => i.status_pagamento === "pendente" && !pagasAsaas.has(i.id),
   ).length;
   const receita = lista
     .filter((i) => i.status_pagamento === "pago")
@@ -139,6 +141,16 @@ export default async function EventoDetailPage({ params }: PageProps) {
     }, 0);
   // Entradas (senhas) x opcionais (almoço), contando só inscrições pagas.
   const ingressosVendidos = somaItens((it) => !ehOpcional(it));
+  const ingressosSemQr = pagasSemQr.reduce((sum, i) => {
+    const itens = (i.itens as { qtd?: number; opcional?: boolean; tipo_id?: string }[] | null) ?? [];
+    return sum + itens.filter((it) => !ehOpcional(it)).reduce((s, it) => s + (it.qtd ?? 0), 0);
+  }, 0);
+
+  // Mesma pessoa com várias tentativas: quem já pagou numa, as outras são repetidas.
+  const digitos = (t: string | null) => String(t ?? "").replace(/\D/g, "").slice(-8);
+  const telefonesPagos = new Set(
+    lista.filter((i) => i.status_pagamento === "pago" || pagasAsaas.has(i.id)).map((i) => digitos(i.telefone)),
+  );
   const opcionaisVendidos = somaItens((it) => ehOpcional(it));
   const temOpcionais = tiposOpcionais.size > 0;
 
@@ -209,8 +221,9 @@ export default async function EventoDetailPage({ params }: PageProps) {
         }`}
       >
         <MetricCard
-          label="Ingressos vendidos"
+          label="Pessoas confirmadas"
           value={ingressosVendidos}
+          sub={`ingressos em ${pagas.length} inscrições pagas`}
           icon={Ticket}
         />
         {temOpcionais && (
@@ -223,6 +236,7 @@ export default async function EventoDetailPage({ params }: PageProps) {
         <MetricCard
           label="Pendentes"
           value={totalPendentes}
+          sub={pagasSemQr.length ? `+ ${pagasSemQr.length} pagas no Asaas sem QR (${ingressosSemQr} pessoas)` : "aguardando pagamento"}
           icon={Clock}
         />
         <MetricCard
@@ -446,6 +460,10 @@ export default async function EventoDetailPage({ params }: PageProps) {
                   qrcode_enviado_em: i.qrcode_enviado_em,
                   qrcode_erro: i.qrcode_erro,
                   asaas_conta: pagasAsaas.get(i.id)?.conta ?? null,
+                  repetida:
+                    i.status_pagamento !== "pago" &&
+                    !pagasAsaas.has(i.id) &&
+                    telefonesPagos.has(digitos(i.telefone)),
                   logs: logsPorInscricao.get(i.id) ?? [],
                 };
               })}
@@ -482,10 +500,12 @@ export default async function EventoDetailPage({ params }: PageProps) {
 function MetricCard({
   label,
   value,
+  sub,
   icon: Icon,
 }: {
   label: string;
   value: string | number;
+  sub?: string;
   icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
@@ -498,6 +518,7 @@ function MetricCard({
           <div className="mt-1 text-2xl font-extrabold text-neel-blue">
             {value}
           </div>
+          {sub && <div className="mt-0.5 text-xs text-muted-foreground">{sub}</div>}
         </div>
         <div className="grid size-10 place-items-center rounded-2xl bg-neel-blue-50 text-neel-blue">
           <Icon className="size-5" />

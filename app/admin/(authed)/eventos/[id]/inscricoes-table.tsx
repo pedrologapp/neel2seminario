@@ -43,6 +43,8 @@ export interface InscricaoRow {
   qrcode_erro: string | null;
   /** Pago no Asaas (lib/asaas-conferencia): em qual conta. */
   asaas_conta?: "neel" | "escola" | null;
+  /** Mesma pessoa já pagou em outra inscrição: esta é tentativa repetida. */
+  repetida?: boolean;
   logs: LogItem[];
 }
 
@@ -254,6 +256,7 @@ export function InscricoesTable({ inscricoes }: { inscricoes: InscricaoRow[] }) 
                     </td>
                     <td className="py-3 pr-4">
                       <Badge variant={st.variant}>{st.label}</Badge>
+                      {i.repetida && <div className="mt-1 text-[11px] font-semibold text-muted-foreground" title="A mesma pessoa (mesmo telefone) já pagou em outra inscrição deste evento">tentativa repetida · já pagou em outra</div>}
                       {i.status_pagamento === "cancelado" && (
                         <ExcluirInscricaoButton inscricaoId={i.id} />
                       )}
