@@ -41,6 +41,8 @@ export interface InscricaoRow {
   confirmacao_erro: string | null;
   qrcode_enviado_em: string | null;
   qrcode_erro: string | null;
+  /** Pago no Asaas (lib/asaas-conferencia): em qual conta. */
+  asaas_conta?: "neel" | "escola" | null;
   logs: LogItem[];
 }
 
@@ -202,7 +204,11 @@ export function InscricoesTable({ inscricoes }: { inscricoes: InscricaoRow[] }) 
             </thead>
             <tbody>
               {lista.map((i) => {
-                const st = statusInscricao[i.status_pagamento] ?? statusInscricao.pendente;
+                // Pagou no Asaas mas o sistema não marcou (ex.: caiu na conta da escola de 08/09 a 28/09).
+                const st =
+                  i.asaas_conta && i.status_pagamento !== "pago"
+                    ? { label: `Paga no Asaas (${i.asaas_conta === "escola" ? "conta Escola" : "conta NEEL"})`, variant: "success" as const }
+                    : statusInscricao[i.status_pagamento] ?? statusInscricao.pendente;
                 return (
                   <tr key={i.id} className="border-b border-border/40 last:border-0">
                     <td className="py-3 pr-2">

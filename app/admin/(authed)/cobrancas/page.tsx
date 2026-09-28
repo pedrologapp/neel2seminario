@@ -11,6 +11,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/utils";
 import { ValorSensivel } from "@/components/admin/valores-sensiveis";
+import { AbasCobrancas } from "./abas";
 import { CobrancasTable, type CobrancaRow } from "./cobrancas-table";
 
 export default async function CobrancasPage() {
@@ -64,7 +65,8 @@ export default async function CobrancasPage() {
 
   return (
     <div className="container mx-auto px-4 py-10">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <AbasCobrancas atual="avulsas" />
+      <header className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-neel-blue sm:text-4xl">
             Cobranças avulsas

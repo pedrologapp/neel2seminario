@@ -71,6 +71,15 @@ export default async function EventoDetailPage({ params }: PageProps) {
 
   const lista = inscricoes ?? [];
 
+  // Pago no Asaas (conta NEEL ou Escola) mas pendente/cancelado aqui: a tabela mostra o selo.
+  let pagasAsaas = new Map<string, { conta: "neel" | "escola"; valor: number }>();
+  try {
+    const { conferirAsaas, pagasNoAsaas } = await import("@/lib/asaas-conferencia");
+    pagasAsaas = pagasNoAsaas((await conferirAsaas()).pagamentos);
+  } catch {
+    // Sem as chaves na Vercel ou Asaas fora: a tabela segue sem o selo.
+  }
+
   // Logs de todas as inscrições deste evento, agrupados por inscricao_id
   const idsInscricoes = lista.map((i) => i.id);
   const logsPorInscricao = new Map<
@@ -436,6 +445,7 @@ export default async function EventoDetailPage({ params }: PageProps) {
                   confirmacao_erro: i.confirmacao_erro,
                   qrcode_enviado_em: i.qrcode_enviado_em,
                   qrcode_erro: i.qrcode_erro,
+                  asaas_conta: pagasAsaas.get(i.id)?.conta ?? null,
                   logs: logsPorInscricao.get(i.id) ?? [],
                 };
               })}
