@@ -6,6 +6,7 @@ import {
   Megaphone,
   Receipt,
   Wallet,
+  Bot,
 } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ const navLinks = [
   { href: "/admin/cobrancas", label: "Cobranças", icon: Receipt },
   { href: "/admin/divulgacao", label: "Divulgação", icon: Megaphone },
   { href: "/admin/financeiro", label: "Financeiro", icon: Wallet },
+  { href: "/admin/automacoes", label: "Automações", icon: Bot },
 ];
 
 export function AdminShell({ userEmail, children }: AdminShellProps) {
