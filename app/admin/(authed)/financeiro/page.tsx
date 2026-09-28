@@ -153,6 +153,14 @@ export default async function FinanceiroPage({ searchParams }: { searchParams: P
               ))}
               {f.retiradas.length === 0 && <tr><td colSpan={3} className="px-4 py-6 text-center text-muted-foreground">Nenhuma retirada no período.</td></tr>}
             </tbody>
+            {f.retiradas.length > 0 && (
+              <tfoot>
+                <tr className="border-t-2 bg-red-50/60">
+                  <td className="px-4 py-3 font-extrabold" colSpan={2}>Total retirado ({f.retiradas.length} transferência{f.retiradas.length > 1 ? "s" : ""})</td>
+                  <td className="px-4 py-3 text-right text-base font-extrabold tabular-nums text-red-700"><R v={retirado} /></td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </section>
