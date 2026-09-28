@@ -51,7 +51,31 @@ export interface DadosIngressos {
   contato: string;
 }
 
+/** Modo exemplo (para aprovar o visual): seminário real, ingressos fictícios. */
+const EVENTO_EXEMPLO = "bf2c14f3-60fe-4870-ace0-45ef447d0a44";
+async function dadosExemplo(): Promise<DadosIngressos | null> {
+  const { data: ev } = await createAdminClient().from("eventos").select("nome, data_evento, hora_evento, local, palestrantes").eq("id", EVENTO_EXEMPLO).maybeSingle();
+  if (!ev) return null;
+  const ingressos: Ingresso[] = [
+    { token: "EXEMPLO-ENTRADA-0001", nome: "1º Lote", almoco: false, status: "ativo" },
+    { token: "EXEMPLO-ENTRADA-0002", nome: "1º Lote", almoco: false, status: "ativo" },
+    { token: "EXEMPLO-ENTRADA-0003", nome: "1º Lote", almoco: false, status: "ativo" },
+    { token: "EXEMPLO-ALMOCO-0001", nome: "Almoço - Creme de Frango, arroz e batata palha.", almoco: true, status: "ativo" },
+    { token: "EXEMPLO-ALMOCO-0002", nome: "Almoço - Carne ao molho madeira, arroz e batata palha.", almoco: true, status: "ativo" },
+  ];
+  return {
+    inscricaoId: "exemplo",
+    pessoa: "Pedro Luciano",
+    evento: { nome: ev.nome as string, data: ev.data_evento as string, hora: ev.hora_evento as string | null, local: ev.local as string | null, palestrantes: (ev.palestrantes as { nome: string; foto_url?: string }[] | null) ?? [] },
+    ingressos,
+    entradas: 3,
+    almocos: 2,
+    contato: CONTATO_NEEL,
+  };
+}
+
 export async function carregarIngressos(inscricaoId: string): Promise<DadosIngressos | null> {
+  if (inscricaoId === "exemplo") return dadosExemplo();
   const db = createAdminClient();
   const { data: insc } = await db
     .from("inscricoes")

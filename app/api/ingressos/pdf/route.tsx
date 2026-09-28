@@ -17,7 +17,7 @@ const PW = 405, PH = 720; // página do PDF em pontos (9:16)
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = req.nextUrl;
   const id = searchParams.get("i") ?? "";
-  if (!/^[0-9a-f-]{36}$/i.test(id) || !assinaturaValida(id, searchParams.get("s") ?? "")) {
+  if (!(id === "exemplo" || /^[0-9a-f-]{36}$/i.test(id)) || !assinaturaValida(id, searchParams.get("s") ?? "")) {
     return new Response("Link inválido.", { status: 403 });
   }
   const d = await carregarIngressos(id);
