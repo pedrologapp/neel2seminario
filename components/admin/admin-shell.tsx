@@ -3,6 +3,7 @@ import {
   CalendarDays,
   LayoutDashboard,
   LogOut,
+  Megaphone,
   Receipt,
 } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
@@ -22,6 +23,7 @@ const navLinks = [
   { href: "/admin/dashboard", label: "Visão geral", icon: LayoutDashboard },
   { href: "/admin/eventos", label: "Eventos", icon: CalendarDays },
   { href: "/admin/cobrancas", label: "Cobranças", icon: Receipt },
+  { href: "/admin/divulgacao", label: "Divulgação", icon: Megaphone },
 ];
 
 export function AdminShell({ userEmail, children }: AdminShellProps) {
