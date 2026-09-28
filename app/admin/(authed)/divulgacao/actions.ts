@@ -70,16 +70,22 @@ export async function salvarConfig(f: ConfigForm) {
   }
 }
 
-/** Link para o navegador subir o flyer/vídeo direto no Storage (bucket "eventos"). */
+/** Link para o navegador subir o flyer/vídeo direto no Storage (bucket "divulgacao-midia"). */
 export async function prepararUpload(tipo: "flyer" | "video", nomeArquivo: string) {
   if (!(await logado())) return { ok: false as const, erro: "Sessão expirada." };
   const ext = (nomeArquivo.split(".").pop() ?? "").toLowerCase().replace(/[^a-z0-9]/g, "") || (tipo === "video" ? "mp4" : "jpg");
   const path = `divulgacao/${tipo}-${Date.now()}.${ext}`;
   const admin = createAdminClient();
-  const { data, error } = await admin.storage.from("eventos").createSignedUploadUrl(path);
+  // Espaço próprio da divulgação (público: o WhatsApp baixa o flyer/vídeo daqui).
+  // O bucket "eventos" tem limite pensado para fotos; este aceita vídeo.
+  const BUCKET = "divulgacao-midia";
+  await admin.storage
+    .createBucket(BUCKET, { public: true, fileSizeLimit: "50MB", allowedMimeTypes: ["image/jpeg", "image/png", "image/webp", "video/mp4", "video/quicktime"] })
+    .catch(() => null);
+  const { data, error } = await admin.storage.from(BUCKET).createSignedUploadUrl(path);
   if (error || !data) return { ok: false as const, erro: error?.message ?? "Não consegui preparar o envio." };
-  const { data: pub } = admin.storage.from("eventos").getPublicUrl(path);
-  return { ok: true as const, path, token: data.token, url: pub.publicUrl };
+  const { data: pub } = admin.storage.from(BUCKET).getPublicUrl(path);
+  return { ok: true as const, bucket: BUCKET, path, token: data.token, url: pub.publicUrl };
 }
 
 /** Grava a URL do material depois que o upload terminou (ou limpa com null). */

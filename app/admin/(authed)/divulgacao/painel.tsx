@@ -23,7 +23,7 @@ function Material({ tipo, url }: { tipo: "flyer" | "video"; url: string | null }
     try {
       const p = await prepararUpload(tipo, arq.name);
       if (!p.ok) throw new Error(p.erro);
-      const { error } = await createClient().storage.from("eventos").uploadToSignedUrl(p.path, p.token, arq, { contentType: arq.type || undefined });
+      const { error } = await createClient().storage.from(p.bucket).uploadToSignedUrl(p.path, p.token, arq, { contentType: arq.type || undefined });
       if (error) throw new Error(error.message);
       const s = await salvarMaterial(tipo, p.url);
       if (!s.ok) throw new Error(s.erro);
