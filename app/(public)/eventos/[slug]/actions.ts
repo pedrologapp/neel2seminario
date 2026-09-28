@@ -6,6 +6,8 @@ import { calcularTotal } from "@/lib/pricing";
 import { logInscricao } from "@/lib/log-inscricao";
 import { validarCPF, telefoneValido } from "@/lib/validators";
 import { calcEstoquePorTipo, validarCotaItens } from "@/lib/estoque";
+import { cookies, headers } from "next/headers";
+import { COOKIE_ORIGEM, canal, type Origem } from "@/lib/analytics/origem";
 
 const itemSchema = z.object({
   tipo_id: z.string().uuid(),
@@ -101,6 +103,32 @@ export async function submitInscricao(
       ok: false,
       error: `Erro ao registrar inscrição: ${insertErr?.message ?? "desconhecido"}`,
     };
+  }
+
+  // De onde veio (anúncio, redes, direto) e os dados que o Meta usa para
+  // casar a compra com o anúncio (cookies _fbp/_fbc, IP, navegador).
+  try {
+    const jar = await cookies();
+    const h = await headers();
+    let origem: Origem | null = null;
+    const bruto = jar.get(COOKIE_ORIGEM)?.value;
+    if (bruto) origem = JSON.parse(decodeURIComponent(bruto)) as Origem;
+    await logInscricao({
+      inscricaoId: inscricao.id,
+      etapa: "origem_trafego",
+      mensagem: canal(origem),
+      detalhe: {
+        ...(origem ?? {}),
+        canal: canal(origem),
+        fbp: jar.get("_fbp")?.value ?? null,
+        fbc: jar.get("_fbc")?.value ?? null,
+        ip: (h.get("x-forwarded-for") ?? "").split(",")[0].trim() || null,
+        ua: h.get("user-agent")?.slice(0, 300) ?? null,
+      },
+      origem: "site",
+    });
+  } catch {
+    // origem é só para relatório: nunca atrapalha a inscrição
   }
 
   // 2. Dados auxiliares pro payload do webhook

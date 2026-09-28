@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
+import { enviarCompraMeta } from "@/lib/analytics/meta-capi";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logInscricao } from "@/lib/log-inscricao";
@@ -75,6 +76,9 @@ export async function POST(req: NextRequest) {
     detalhe: asaasPaymentId ? { asaasPaymentId } : null,
     origem: "n8n",
   });
+
+  // Avisa o Meta da compra depois de responder (não atrasa o n8n).
+  if (status === "pago") after(() => enviarCompraMeta(inscricaoId));
 
   return NextResponse.json({
     ok: true,
