@@ -32,6 +32,7 @@ import {
 import { formatDateTimeBrt } from "@/lib/utils";
 import { InscricoesTable } from "./inscricoes-table";
 import { SenhaGateButton } from "./senha-gate-button";
+import { PagosSemIngresso, type PagoSemIngressoRow } from "./pagos-sem-ingresso";
 
 const statusConfig: Record<
   string,
@@ -78,6 +79,25 @@ export default async function EventoDetailPage({ params }: PageProps) {
     pagasAsaas = pagasNoAsaas((await conferirAsaas()).pagamentos);
   } catch {
     // Sem as chaves na Vercel ou Asaas fora: a tabela segue sem o selo.
+  }
+
+  // Pagos no Asaas sem confirmação/QR (conferido ao abrir; null = Asaas fora do ar)
+  let semIngresso: PagoSemIngressoRow[] | null = null;
+  try {
+    const { pagosSemIngresso } = await import("@/lib/conferencia-ingressos");
+    semIngresso = (await pagosSemIngresso({ eventoId: id, fresco: false })).lista.map((x) => ({
+      inscricaoId: x.inscricaoId,
+      nome: x.nome,
+      telefone: x.telefone,
+      statusSistema: x.statusSistema,
+      conta: x.conta,
+      forma: x.pagamento.forma,
+      valor: x.pagamento.valor,
+      recebidoEm: x.pagamento.recebidoEm,
+      motivo: x.motivo,
+    }));
+  } catch {
+    // Sem as chaves ou Asaas fora: a página segue sem a caixa.
   }
 
   // Logs de todas as inscrições deste evento, agrupados por inscricao_id
@@ -245,6 +265,8 @@ export default async function EventoDetailPage({ params }: PageProps) {
           icon={Wallet}
         />
       </section>
+
+      {semIngresso && <PagosSemIngresso eventoId={evento.id} lista={semIngresso} />}
 
       {/* Informações */}
       <section className="mt-8 grid gap-6 lg:grid-cols-3">

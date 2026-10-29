@@ -1032,3 +1032,24 @@ export async function verificarSenhaAcao(senha: string): Promise<boolean> {
   const senhaCorreta = process.env.ADMIN_ACTION_PASSWORD || "Admim123";
   return senha === senhaCorreta;
 }
+
+// =============================================================
+// PAGOS NO ASAAS SEM INGRESSO (lib/conferencia-ingressos)
+// =============================================================
+
+export async function enviarIngressosPagosSemIngresso(
+  eventoId: string,
+  inscricaoIds: string[],
+): Promise<{ ok: boolean; enviados: number; falhas: { nome: string | null; erro?: string }[]; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, enviados: 0, falhas: [], error: "Sua sessão expirou. Faça login novamente." };
+  if (!inscricaoIds.length) return { ok: false, enviados: 0, falhas: [], error: "Nenhuma inscrição escolhida." };
+  const { enviarIngressos } = await import("@/lib/conferencia-ingressos");
+  const res = await enviarIngressos(inscricaoIds, user.email ?? "admin");
+  revalidatePath(`/admin/eventos/${eventoId}`);
+  const falhas = res.filter((r) => !r.ok).map((r) => ({ nome: r.nome, erro: r.erro }));
+  return { ok: falhas.length === 0, enviados: res.length - falhas.length, falhas };
+}
