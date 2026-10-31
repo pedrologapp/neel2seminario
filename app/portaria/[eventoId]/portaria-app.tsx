@@ -23,6 +23,7 @@ import {
   confirmarManual,
   listarParticipantes,
   validarTicket,
+  versaoPortaria,
   type Modo,
   type Participante,
   type ResultadoLeitura,
@@ -84,10 +85,35 @@ export function PortariaApp({
     setListas({ entrada, almoco });
   }
 
-  // Vários celulares na portaria: a contagem se atualiza sozinha
+  // Vários celulares na portaria: a cada 2,5 s pergunta se algo mudou
+  // (versaoPortaria é leve) e só então recarrega as listas. Ao voltar para
+  // a aba/tela do celular, confere na hora.
   useEffect(() => {
-    const id = setInterval(refresh, 15000);
-    return () => clearInterval(id);
+    let ultima = "";
+    let ocupado = false;
+    async function checar() {
+      if (ocupado || document.hidden) return;
+      ocupado = true;
+      try {
+        const v = await versaoPortaria(evento.id);
+        if (v && v !== ultima) {
+          await refresh();
+          ultima = v;
+        }
+      } catch {
+        /* sem internet por um instante: tenta na próxima */
+      } finally {
+        ocupado = false;
+      }
+    }
+    checar();
+    const id = setInterval(checar, 2500);
+    const aoVoltar = () => { if (!document.hidden) checar(); };
+    document.addEventListener("visibilitychange", aoVoltar);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", aoVoltar);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -387,6 +387,22 @@ export type Participante = {
   etiqueta: string | null;
 };
 
+/**
+ * "Assinatura" barata do estado da portaria (31/10): muda sempre que alguém
+ * confirma uma senha ou entra uma inscrição nova. Os celulares perguntam a
+ * cada poucos segundos e só recarregam as listas quando ela muda.
+ */
+export async function versaoPortaria(eventoId: string): Promise<string> {
+  if (!(await portariaAutenticada())) return "";
+  const admin = createAdminClient();
+  const [usados, ultimo, insc] = await Promise.all([
+    admin.from("tickets").select("id", { count: "exact", head: true }).eq("evento_id", eventoId).eq("status", "usado"),
+    admin.from("tickets").select("usado_em").eq("evento_id", eventoId).not("usado_em", "is", null).order("usado_em", { ascending: false }).limit(1).maybeSingle(),
+    admin.from("inscricoes").select("updated_at").eq("evento_id", eventoId).order("updated_at", { ascending: false }).limit(1).maybeSingle(),
+  ]);
+  return [usados.count ?? 0, ultimo.data?.usado_em ?? "", insc.data?.updated_at ?? ""].join("|");
+}
+
 export async function listarParticipantes(
   eventoId: string,
   modo: Modo = "entrada",
