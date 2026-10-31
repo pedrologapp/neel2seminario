@@ -438,7 +438,8 @@ export async function venderAlmocoMaquininha(
   if (!itens.length) return { ok: false, error: "Escolha pelo menos um prato." };
   const valor = pratos.reduce((s, p) => { const q = Math.floor(Number(qtds[p.id] ?? 0)); return s + (q > 0 && q <= 50 ? q * p.preco : 0); }, 0);
   const hora = new Date().toLocaleTimeString("pt-BR", { timeZone: "America/Fortaleza", hour: "2-digit", minute: "2-digit" });
-  const { error } = await createAdminClient()
+  const admin = createAdminClient();
+  const { data: nova, error } = await admin
     .from("inscricoes")
     .insert({
       evento_id: eventoId,
@@ -453,8 +454,24 @@ export async function venderAlmocoMaquininha(
       parcelas: 1,
       status_pagamento: "pago",
       registrado_por: "portaria-maquininha",
-    });
-  if (error) return { ok: false, error: "Não foi possível registrar. Tente de novo." };
+    })
+    .select("id")
+    .single();
+  if (error || !nova) return { ok: false, error: "Não foi possível registrar. Tente de novo." };
+
+  // o prato já sai entregue na hora da venda: as senhas nascem "usadas"
+  // (só entra na contagem, não fica esperando na lista de entrega)
+  const agora = new Date().toISOString();
+  const senhas = [];
+  let ordem = 0;
+  for (const p of pratos) {
+    const q = Math.floor(Number(qtds[p.id] ?? 0));
+    for (let k = 0; q > 0 && q <= 50 && k < q; k++) {
+      ordem++;
+      senhas.push({ inscricao_id: nova.id, evento_id: eventoId, tipo_ingresso_id: p.id, nome_tipo: `Almoço - ${p.nome}`, preco_unitario: p.preco, ordem, token: `NEEL-MAQ-${nova.id.slice(0, 8).toUpperCase()}-${ordem}`, status: "usado", usado_em: agora, aluno_nome: null });
+    }
+  }
+  await admin.from("tickets").insert(senhas);
   return { ok: true };
 }
 
