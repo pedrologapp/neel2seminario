@@ -394,6 +394,70 @@ export type Participante = {
  * confirma uma senha ou entra uma inscrição nova. Os celulares perguntam a
  * cada poucos segundos e só recarregam as listas quando ela muda.
  */
+/** Pratos do almoço à venda neste evento (para a venda na maquininha). */
+export type Prato = { id: string; nome: string; curto: string; preco: number };
+
+export async function pratosAlmoco(eventoId: string): Promise<Prato[]> {
+  if (!(await portariaAutenticada())) return [];
+  const { data } = await createAdminClient()
+    .from("tipos_ingresso")
+    .select("id, nome, preco, grupo, ordem")
+    .eq("evento_id", eventoId)
+    .eq("ativo", true)
+    .order("ordem", { ascending: true });
+  return (data ?? [])
+    .filter((t) => modoDoTipo(t.grupo ?? "") === "almoco")
+    .map((t) => {
+      const longo = (t.nome ?? "").replace(/[.,].*$/, "").trim();
+      const curto = /frango/i.test(longo) ? "Frango" : /carne/i.test(longo) ? "Carne" : longo;
+      return { id: t.id, nome: t.nome, curto, preco: Number(t.preco) };
+    });
+}
+
+/**
+ * Venda de almoço na maquininha, lançada na portaria (31/10). Vira uma
+ * inscrição paga (cartão, sem Asaas) marcada "portaria-maquininha", para a
+ * contagem de pratos e a lista de entrega ficarem certas.
+ */
+export async function venderAlmocoMaquininha(
+  eventoId: string,
+  qtds: Record<string, number>,
+  nome?: string,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!(await portariaAutenticada())) {
+    return { ok: false, error: "Sessão expirada. Entre novamente." };
+  }
+  const pratos = await pratosAlmoco(eventoId);
+  const itens: ItemInscricao[] = [];
+  for (const p of pratos) {
+    const qtd = Math.floor(Number(qtds[p.id] ?? 0));
+    if (qtd > 0 && qtd <= 50) {
+      itens.push({ qtd, nome: `Almoço - ${p.nome}`, grupo: "Almoço", tipo_id: p.id, opcional: true, preco_unitario: p.preco } as unknown as ItemInscricao);
+    }
+  }
+  if (!itens.length) return { ok: false, error: "Escolha pelo menos um prato." };
+  const valor = pratos.reduce((s, p) => { const q = Math.floor(Number(qtds[p.id] ?? 0)); return s + (q > 0 && q <= 50 ? q * p.preco : 0); }, 0);
+  const hora = new Date().toLocaleTimeString("pt-BR", { timeZone: "America/Fortaleza", hour: "2-digit", minute: "2-digit" });
+  const { error } = await createAdminClient()
+    .from("inscricoes")
+    .insert({
+      evento_id: eventoId,
+      responsavel_nome: (nome ?? "").trim().slice(0, 120) || `Maquininha ${hora}`,
+      cpf: "",
+      email: "",
+      telefone: "",
+      itens,
+      valor_base: valor,
+      valor_total: valor,
+      metodo_pagamento: "cartao",
+      parcelas: 1,
+      status_pagamento: "pago",
+      registrado_por: "portaria-maquininha",
+    });
+  if (error) return { ok: false, error: "Não foi possível registrar. Tente de novo." };
+  return { ok: true };
+}
+
 export async function versaoPortaria(eventoId: string): Promise<string> {
   if (!(await portariaAutenticada())) return "";
   const admin = createAdminClient();
@@ -482,7 +546,7 @@ async function montarParticipantes(
       if (curto && it.qtd && it.qtd > 0) qtdPorTipo[curto] = (qtdPorTipo[curto] ?? 0) + it.qtd;
     }
     const tipos = Object.entries(qtdPorTipo).map(([n, q]) => `${q} ${n}`);
-    out.push({ inscricaoId: i.id, nome, responsavel, usadas, total, ultimaEm: ultimaPorInsc.get(i.id) ?? null, tipos, qtdPorTipo, etiqueta: i.registrado_por?.startsWith("portaria-cortesia") || i.registrado_por?.startsWith("cortesia") ? "Cortesia" : i.registrado_por === "portaria-paga-depois" ? "Fará em outro dia" : null });
+    out.push({ inscricaoId: i.id, nome, responsavel, usadas, total, ultimaEm: ultimaPorInsc.get(i.id) ?? null, tipos, qtdPorTipo, etiqueta: i.registrado_por?.startsWith("portaria-cortesia") || i.registrado_por?.startsWith("cortesia") ? "Cortesia" : i.registrado_por === "portaria-paga-depois" ? "Fará em outro dia" : i.registrado_por === "portaria-maquininha" ? "Maquininha" : null });
   }
 
   return out.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));

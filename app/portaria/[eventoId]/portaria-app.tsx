@@ -9,6 +9,8 @@ import {
   Check,
   CheckCircle2,
   Keyboard,
+  Minus,
+  Plus,
   ScanLine,
   Search,
   Ticket,
@@ -23,8 +25,10 @@ import {
   confirmarManual,
   listarParticipantes,
   validarTicket,
+  venderAlmocoMaquininha,
   versaoPortaria,
   type Modo,
+  type Prato,
   type Participante,
   type ResultadoLeitura,
 } from "../actions";
@@ -68,12 +72,15 @@ function iniciais(nome: string) {
 export function PortariaApp({
   evento,
   listasIniciais,
+  pratosVenda,
 }: {
   evento: { id: string; nome: string };
   listasIniciais: Record<Modo, Participante[]>;
+  pratosVenda: Prato[];
 }) {
   const [modo, setModo] = useState<Modo>("entrada");
   const [aba, setAba] = useState<Aba>("ler");
+  const [vendendo, setVendendo] = useState<Prato | null>(null);
   const [listas, setListas] = useState(listasIniciais);
   const [, startTransition] = useTransition();
 
@@ -186,19 +193,44 @@ export function PortariaApp({
         {modo === "almoco" && (() => {
           const pratos: Record<string, number> = {};
           for (const p of listas.almoco) for (const [n, q] of Object.entries(p.qtdPorTipo)) pratos[n] = (pratos[n] ?? 0) + q;
+          // os pratos à venda aparecem mesmo com zero; "escolhe na hora" etc. só se tiver
+          for (const pr of pratosVenda) pratos[pr.curto] ??= 0;
           const lista = Object.entries(pratos).sort((a, b) => b[1] - a[1]);
           if (!lista.length) return null;
           return (
-            <div className="-mt-1 mb-4 flex gap-3">
-              {lista.map(([n, q]) => (
-                <div key={n} className="flex flex-1 items-baseline justify-between rounded-2xl border border-[#e7e5e4] bg-white px-3.5 py-2.5">
-                  <span className="text-sm font-semibold" style={{ color: COR.almoco.texto }}>{n}</span>
-                  <span className="text-2xl font-extrabold tabular-nums leading-none">{q}</span>
-                </div>
-              ))}
+            <div className="-mt-1 mb-4 flex flex-wrap gap-3">
+              {lista.map(([n, q]) => {
+                const prato = pratosVenda.find((pr) => pr.curto === n);
+                return (
+                  <div key={n} className="flex min-w-[9rem] flex-1 items-center gap-2 rounded-2xl border border-[#e7e5e4] bg-white py-2 pl-3.5 pr-2">
+                    <span className="min-w-0 flex-1 text-sm font-semibold leading-tight" style={{ color: COR.almoco.texto }}>{n}</span>
+                    <span className="text-2xl font-extrabold tabular-nums leading-none">{q}</span>
+                    {prato && (
+                      <button
+                        type="button"
+                        onClick={() => setVendendo(prato)}
+                        aria-label={`Adicionar ${n} vendido na maquininha`}
+                        className="grid size-9 shrink-0 place-items-center rounded-full text-white active:scale-95"
+                        style={{ background: COR.almoco.forte }}
+                      >
+                        <Plus className="size-5" strokeWidth={3} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           );
         })()}
+
+        {vendendo && (
+          <VendaFolha
+            eventoId={evento.id}
+            prato={vendendo}
+            onFechar={() => setVendendo(null)}
+            onVendido={refresh}
+          />
+        )}
 
         {/* abas */}
         <div className="mb-4 flex gap-1 rounded-full border border-[#e7e5e4] bg-white p-1">
@@ -588,6 +620,77 @@ function Folha({ children, onFechar }: { children: React.ReactNode; onFechar: ()
   );
 }
 
+/** Almoço vendido na maquininha: escolhe a quantidade e soma na contagem. */
+function VendaFolha({
+  eventoId,
+  prato,
+  onFechar,
+  onVendido,
+}: {
+  eventoId: string;
+  prato: Prato;
+  onFechar: () => void;
+  onVendido: () => Promise<void>;
+}) {
+  const [qtd, setQtd] = useState(1);
+  const [pending, startTransition] = useTransition();
+  const [erro, setErro] = useState<string | null>(null);
+  const cor = COR.almoco;
+
+  function registrar() {
+    setErro(null);
+    startTransition(async () => {
+      const r = await venderAlmocoMaquininha(eventoId, { [prato.id]: qtd });
+      if (!r.ok) {
+        setErro(r.error ?? "Não foi possível registrar.");
+        return;
+      }
+      await onVendido();
+      vibrar("liberado");
+      onFechar();
+    });
+  }
+
+  return (
+    <Folha onFechar={onFechar}>
+      <div className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: cor.texto }}>
+        Vendido na maquininha
+      </div>
+      <div className="mt-1.5 pr-8 text-2xl font-extrabold leading-tight">{prato.curto}</div>
+      <div className="mt-6 flex items-center justify-center gap-6">
+        <button
+          type="button"
+          onClick={() => setQtd((q) => Math.max(1, q - 1))}
+          aria-label="Menos um"
+          className="grid size-14 place-items-center rounded-full border-2 border-[#e7e5e4] text-[#57534e] active:scale-95"
+        >
+          <Minus className="size-6" strokeWidth={3} />
+        </button>
+        <span className="w-14 text-center text-5xl font-extrabold tabular-nums">{qtd}</span>
+        <button
+          type="button"
+          onClick={() => setQtd((q) => Math.min(20, q + 1))}
+          aria-label="Mais um"
+          className="grid size-14 place-items-center rounded-full text-white active:scale-95"
+          style={{ background: cor.forte }}
+        >
+          <Plus className="size-6" strokeWidth={3} />
+        </button>
+      </div>
+      {erro && <p className="mt-4 text-center text-sm font-semibold text-red-700">{erro}</p>}
+      <button
+        type="button"
+        onClick={registrar}
+        disabled={pending}
+        className="mt-6 w-full rounded-2xl py-4 text-lg font-bold text-white active:scale-[0.98] disabled:opacity-60"
+        style={{ background: cor.forte }}
+      >
+        {pending ? "Registrando…" : `Adicionar ${qtd} ${prato.curto}`}
+      </button>
+    </Folha>
+  );
+}
+
 // ============================================================
 // Lista de nomes (para quem chega sem o QR)
 // ============================================================
@@ -632,7 +735,7 @@ function ListaTab({
   const cor = COR[modo];
 
   // cortesias e "fará em outro dia" ficam nas abas delas (e em Todos / na busca)
-  const faltam = participantes.filter((p) => p.usadas < p.total && !p.etiqueta);
+  const faltam = participantes.filter((p) => p.usadas < p.total && (!p.etiqueta || p.etiqueta === "Maquininha"));
   const presentes = participantes.filter((p) => p.usadas > 0);
   const cortesias = participantes.filter((p) => p.etiqueta === "Cortesia");
   const outroDia = participantes.filter((p) => p.etiqueta === "Fará em outro dia");
@@ -710,7 +813,7 @@ function ListaTab({
                     {p.etiqueta && (
                       <span
                         className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
-                        style={p.etiqueta === "Fará em outro dia" ? { background: "#fef3c7", color: "#92400e" } : { background: "#ede9fe", color: "#5b21b6" }}
+                        style={p.etiqueta === "Fará em outro dia" ? { background: "#fef3c7", color: "#92400e" } : p.etiqueta === "Maquininha" ? { background: "#e0f2fe", color: "#075985" } : { background: "#ede9fe", color: "#5b21b6" }}
                       >
                         {p.etiqueta}
                       </span>

@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { portariaAutenticada } from "@/lib/portaria-auth";
-import { listarParticipantes } from "../actions";
+import { listarParticipantes, pratosAlmoco } from "../actions";
 import { PortariaApp } from "./portaria-app";
 
 interface PageProps {
@@ -24,15 +24,17 @@ export default async function PortariaEventoPage({ params }: PageProps) {
 
   if (!evento) notFound();
 
-  const [entrada, almoco] = await Promise.all([
+  const [entrada, almoco, pratos] = await Promise.all([
     listarParticipantes(eventoId, "entrada"),
     listarParticipantes(eventoId, "almoco"),
+    pratosAlmoco(eventoId),
   ]);
 
   return (
     <PortariaApp
       evento={{ id: evento.id, nome: evento.nome }}
       listasIniciais={{ entrada, almoco }}
+      pratosVenda={pratos}
     />
   );
 }
