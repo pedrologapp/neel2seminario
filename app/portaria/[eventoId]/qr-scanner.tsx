@@ -53,7 +53,15 @@ export function QrScanner({
         scanner = new Html5Qrcode("qr-reader");
         iniciando = scanner.start(
           { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
+          {
+            fps: 10,
+            aspectRatio: 1,
+            // área de leitura sempre quadrada: 75% do lado menor do vídeo
+            qrbox: (w: number, h: number) => {
+              const lado = Math.floor(Math.min(w, h) * 0.75);
+              return { width: lado, height: lado };
+            },
+          },
           (decoded: string) => onResultRef.current(decoded),
           () => {
             /* leitura sem QR no frame — ignorar */
@@ -75,10 +83,16 @@ export function QrScanner({
     };
   }, []);
 
+  // (31/10) o vídeo da câmera vem 4:3/16:9 e esticava o visor num
+  // retângulo; a caixa é quadrada e o vídeo preenche cortando as sobras.
   return (
-    <div
-      id="qr-reader"
-      className="mx-auto aspect-square w-full max-w-sm overflow-hidden bg-black"
-    />
+    <div className="relative mx-auto aspect-square w-full max-w-sm overflow-hidden bg-black">
+      <style>{`
+        #qr-reader, #qr-reader > div { position: absolute !important; inset: 0; width: 100% !important; height: 100% !important; }
+        #qr-reader video { width: 100% !important; height: 100% !important; object-fit: cover; }
+        #qr-shaded-region { display: none !important; }
+      `}</style>
+      <div id="qr-reader" />
+    </div>
   );
 }
