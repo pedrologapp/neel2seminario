@@ -182,6 +182,24 @@ export function PortariaApp({
           })}
         </div>
 
+        {/* almoço: quanto foi comprado de cada prato */}
+        {modo === "almoco" && (() => {
+          const pratos: Record<string, number> = {};
+          for (const p of listas.almoco) for (const [n, q] of Object.entries(p.qtdPorTipo)) pratos[n] = (pratos[n] ?? 0) + q;
+          const lista = Object.entries(pratos).sort((a, b) => b[1] - a[1]);
+          if (!lista.length) return null;
+          return (
+            <div className="-mt-1 mb-4 flex gap-3">
+              {lista.map(([n, q]) => (
+                <div key={n} className="flex flex-1 items-baseline justify-between rounded-2xl border border-[#e7e5e4] bg-white px-3.5 py-2.5">
+                  <span className="text-sm font-semibold" style={{ color: COR.almoco.texto }}>{n}</span>
+                  <span className="text-2xl font-extrabold tabular-nums leading-none">{q}</span>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+
         {/* abas */}
         <div className="mb-4 flex gap-1 rounded-full border border-[#e7e5e4] bg-white p-1">
           {([

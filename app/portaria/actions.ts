@@ -383,6 +383,8 @@ export type Participante = {
   ultimaEm: string | null;
   /** os tipos comprados neste modo, ex.: "Creme de Frango" (almoço) */
   tipos: string[];
+  /** quantos de cada prato (almoço), ex.: { Frango: 1, Carne: 2 } */
+  qtdPorTipo: Record<string, number>;
   /** "Cortesia" ou "Fará em outro dia" (lançados à mão pela organização) */
   etiqueta: string | null;
 };
@@ -472,8 +474,15 @@ async function montarParticipantes(
     const nome = alunoNomePorInsc.get(i.id) || responsavel || "Participante";
     const usadas = Math.min(usadasPorInsc.get(i.id)?.size ?? 0, total);
 
-    const tipos = [...new Set(itens.map((it) => (it.nome ?? "").replace(/^Almo[cç]o\s*-\s*/i, "").replace(/[.,].*$/, "").trim()).filter(Boolean))];
-    out.push({ inscricaoId: i.id, nome, responsavel, usadas, total, ultimaEm: ultimaPorInsc.get(i.id) ?? null, tipos, etiqueta: i.registrado_por?.startsWith("portaria-cortesia") || i.registrado_por?.startsWith("cortesia") ? "Cortesia" : i.registrado_por === "portaria-paga-depois" ? "Fará em outro dia" : null });
+    // prato curto: "Almoço - Creme de Frango, arroz…" -> "Frango"
+    const qtdPorTipo: Record<string, number> = {};
+    for (const it of itens) {
+      const longo = (it.nome ?? "").replace(/^Almo[cç]o\s*-\s*/i, "").replace(/[.,].*$/, "").trim();
+      const curto = /frango/i.test(longo) ? "Frango" : /carne/i.test(longo) ? "Carne" : longo;
+      if (curto && it.qtd && it.qtd > 0) qtdPorTipo[curto] = (qtdPorTipo[curto] ?? 0) + it.qtd;
+    }
+    const tipos = Object.entries(qtdPorTipo).map(([n, q]) => `${q} ${n}`);
+    out.push({ inscricaoId: i.id, nome, responsavel, usadas, total, ultimaEm: ultimaPorInsc.get(i.id) ?? null, tipos, qtdPorTipo, etiqueta: i.registrado_por?.startsWith("portaria-cortesia") || i.registrado_por?.startsWith("cortesia") ? "Cortesia" : i.registrado_por === "portaria-paga-depois" ? "Fará em outro dia" : null });
   }
 
   return out.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
