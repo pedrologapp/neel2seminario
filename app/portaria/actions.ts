@@ -383,7 +383,7 @@ export type Participante = {
   ultimaEm: string | null;
   /** os tipos comprados neste modo, ex.: "Creme de Frango" (almoço) */
   tipos: string[];
-  /** "Cortesia" ou "Paga depois" (lançados à mão pela organização) */
+  /** "Cortesia" ou "Fará em outro dia" (lançados à mão pela organização) */
   etiqueta: string | null;
 };
 
@@ -457,7 +457,7 @@ async function montarParticipantes(
     const usadas = Math.min(usadasPorInsc.get(i.id)?.size ?? 0, total);
 
     const tipos = [...new Set(itens.map((it) => (it.nome ?? "").replace(/^Almo[cç]o\s*-\s*/i, "").replace(/[.,].*$/, "").trim()).filter(Boolean))];
-    out.push({ inscricaoId: i.id, nome, responsavel, usadas, total, ultimaEm: ultimaPorInsc.get(i.id) ?? null, tipos, etiqueta: i.registrado_por === "portaria-cortesia" ? "Cortesia" : i.registrado_por === "portaria-paga-depois" ? "Paga depois" : null });
+    out.push({ inscricaoId: i.id, nome, responsavel, usadas, total, ultimaEm: ultimaPorInsc.get(i.id) ?? null, tipos, etiqueta: i.registrado_por?.startsWith("portaria-cortesia") || i.registrado_por?.startsWith("cortesia") ? "Cortesia" : i.registrado_por === "portaria-paga-depois" ? "Fará em outro dia" : null });
   }
 
   return out.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));

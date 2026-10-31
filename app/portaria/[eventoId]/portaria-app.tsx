@@ -548,7 +548,26 @@ function Folha({ children, onFechar }: { children: React.ReactNode; onFechar: ()
 // Lista de nomes (para quem chega sem o QR)
 // ============================================================
 
-type Filtro = "faltam" | "presentes" | "todos";
+type Filtro = "faltam" | "presentes" | "todos" | "cortesia" | "outro-dia";
+
+const AZUL = "#2563eb";
+
+/** uma caixinha por senha; fica azul quando aquela senha foi confirmada */
+function Caixas({ usadas, total }: { usadas: number; total: number }) {
+  return (
+    <div className="mt-1 flex flex-wrap gap-1" aria-label={`${usadas} de ${total}`}>
+      {Array.from({ length: total }, (_, k) => (
+        <span
+          key={k}
+          className="grid size-[18px] place-items-center rounded-[5px] border-2"
+          style={k < usadas ? { background: AZUL, borderColor: AZUL } : { borderColor: "#d6d3d1", background: "#fff" }}
+        >
+          {k < usadas && <Check className="size-3 text-white" strokeWidth={3.5} />}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 function ListaTab({
   eventoId,
@@ -566,9 +585,17 @@ function ListaTab({
   const [confirmando, setConfirmando] = useState<Participante | null>(null);
   const cor = COR[modo];
 
-  const faltam = participantes.filter((p) => p.usadas < p.total);
+  // cortesias e "fará em outro dia" ficam nas abas delas (e em Todos / na busca)
+  const faltam = participantes.filter((p) => p.usadas < p.total && !p.etiqueta);
   const presentes = participantes.filter((p) => p.usadas > 0);
-  const base = filtro === "faltam" ? faltam : filtro === "presentes" ? presentes : participantes;
+  const cortesias = participantes.filter((p) => p.etiqueta === "Cortesia");
+  const outroDia = participantes.filter((p) => p.etiqueta === "Fará em outro dia");
+  const base =
+    filtro === "faltam" ? faltam
+    : filtro === "presentes" ? presentes
+    : filtro === "cortesia" ? cortesias
+    : filtro === "outro-dia" ? outroDia
+    : participantes;
 
   // cada palavra precisa aparecer no nome ou no responsável ("ali melo" acha "Alice Melo")
   const termos = normalizar(busca).split(/\s+/).filter(Boolean);
@@ -595,7 +622,9 @@ function ListaTab({
             ["faltam", "Faltam", faltam.length],
             ["presentes", modo === "almoco" ? "Já pegaram" : "Já entraram", presentes.length],
             ["todos", "Todos", participantes.length],
-          ] as const).map(([f, rotulo, n]) => (
+            ["cortesia", "Cortesia", cortesias.length],
+            ["outro-dia", "Fará em outro dia", outroDia.length],
+          ] as const).filter(([f, , n]) => n > 0 || (f !== "cortesia" && f !== "outro-dia")).map(([f, rotulo, n]) => (
             <button
               key={f}
               type="button"
@@ -632,16 +661,14 @@ function ListaTab({
                     {p.etiqueta && (
                       <span
                         className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
-                        style={p.etiqueta === "Paga depois" ? { background: "#fef3c7", color: "#92400e" } : { background: "#ede9fe", color: "#5b21b6" }}
+                        style={p.etiqueta === "Fará em outro dia" ? { background: "#fef3c7", color: "#92400e" } : { background: "#ede9fe", color: "#5b21b6" }}
                       >
                         {p.etiqueta}
                       </span>
                     )}
                   </div>
-                  <div className="truncate text-xs text-[#78716c]">
-                    {p.total > 1 && <span className="font-semibold tabular-nums">{p.usadas} de {p.total}{sub ? " · " : ""}</span>}
-                    {sub}
-                  </div>
+                  {sub && <div className="truncate text-xs text-[#78716c]">{sub}</div>}
+                  <Caixas usadas={p.usadas} total={p.total} />
                 </div>
                 {completo ? (
                   <span className="shrink-0 text-xs font-semibold text-[#15803d] tabular-nums">{hora(p.ultimaEm)}</span>
@@ -712,7 +739,7 @@ function ConfirmarFolha({
         {modo === "almoco" ? "Entregar almoço" : "Confirmar presença"}
       </div>
       <div className="mt-1.5 pr-8 text-2xl font-extrabold leading-tight">{p.nome}</div>
-      {p.etiqueta === "Paga depois" && <div className="mt-1 text-sm font-semibold text-[#92400e]">Liberado para pagar depois</div>}
+      {p.etiqueta === "Fará em outro dia" && <div className="mt-1 text-sm font-semibold text-[#92400e]">Liberado para pagar depois</div>}
       {p.etiqueta === "Cortesia" && <div className="mt-1 text-sm font-semibold text-[#5b21b6]">Cortesia da organização</div>}
       {modo === "almoco" && p.tipos.length > 0 && <div className="mt-1 text-sm text-[#57534e]">{p.tipos.join(" · ")}</div>}
       {p.total > 1 && (
