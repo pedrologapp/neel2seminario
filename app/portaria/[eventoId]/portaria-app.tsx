@@ -264,6 +264,7 @@ export function PortariaApp({
             eventoId={evento.id}
             modo={modo}
             participantes={listas[modo]}
+            almocos={listas.almoco}
             onMudou={refresh}
           />
         )}
@@ -720,11 +721,14 @@ function ListaTab({
   eventoId,
   modo,
   participantes,
+  almocos,
   onMudou,
 }: {
   eventoId: string;
   modo: Modo;
   participantes: Participante[];
+  /** lista do almoço, para mostrar na entrada quem tem almoço comprado */
+  almocos: Participante[];
   onMudou: () => Promise<void>;
 }) {
   const [busca, setBusca] = useState("");
@@ -733,6 +737,7 @@ function ListaTab({
   // nome longo: toca no nome e ele abre inteiro (toca de novo, fecha)
   const [aberto, setAberto] = useState<string | null>(null);
   const cor = COR[modo];
+  const almocoDe = new Map(almocos.map((a) => [a.inscricaoId, a]));
 
   // cortesias e "fará em outro dia" ficam nas abas delas (e em Todos / na busca)
   const faltam = participantes.filter((p) => p.usadas < p.total && (!p.etiqueta || p.etiqueta === "Maquininha"));
@@ -768,7 +773,7 @@ function ListaTab({
       {!termos.length && (
         <div className="flex gap-2 overflow-x-auto pb-0.5">
           {([
-            ["faltam", "Faltam", faltam.length],
+            ["faltam", "Faltam", faltam.reduce((s, p) => s + Math.max(0, p.total - p.usadas), 0)],
             ["presentes", modo === "almoco" ? "Já pegaram" : "Já entraram", presentes.length],
             ["todos", "Todos", participantes.length],
             ["cortesia", "Cortesia", cortesias.length],
@@ -787,6 +792,41 @@ function ListaTab({
         </div>
       )}
 
+      {/* (31/10) quantas PESSOAS ainda faltam (senhas não usadas), não quantas inscrições */}
+      {!termos.length && filtro === "faltam" && (() => {
+        const resto = (l: Participante[]) => l.reduce((s, p) => s + Math.max(0, p.total - p.usadas), 0);
+        const n = resto(faltam), extra = resto(cortesias) + resto(outroDia);
+        return (
+          <div className="flex items-baseline justify-between rounded-2xl px-4 py-3" style={{ background: cor.suave, color: cor.texto }}>
+            <span className="text-sm font-semibold">
+              {modo === "almoco" ? "Almoços ainda não entregues" : "Pessoas que ainda não chegaram"}
+              {extra > 0 && <span className="block text-xs font-medium opacity-80">+ {extra} {modo === "almoco" ? "de" : "entre"} cortesia / outro dia</span>}
+            </span>
+            <span className="text-3xl font-extrabold tabular-nums leading-none">{n}</span>
+          </div>
+        );
+      })()}
+
+      {!termos.length && filtro === "faltam" && modo === "entrada" && (() => {
+        // almoço comprado por quem ainda não chegou (nenhuma entrada usada) e ainda não pegou
+        const pratos: Record<string, number> = {};
+        let pessoas = 0;
+        for (const p of faltam) {
+          const a = almocoDe.get(p.inscricaoId);
+          if (p.usadas > 0 || !a || a.usadas >= a.total) continue;
+          pessoas++;
+          for (const [k, v] of Object.entries(a.qtdPorTipo)) pratos[k] = (pratos[k] ?? 0) + v;
+        }
+        if (!pessoas) return null;
+        return (
+          <div className="rounded-2xl px-4 py-3 text-sm" style={{ background: COR.almoco.suave, color: COR.almoco.texto }}>
+            <span className="font-semibold">Almoço de quem ainda não chegou: </span>
+            {Object.entries(pratos).map(([k, v]) => v + " " + k).join(" · ")}
+            <span className="opacity-80"> ({pessoas} {pessoas === 1 ? "inscrição" : "inscrições"})</span>
+          </div>
+        );
+      })()}
+
       {lista.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-[#d6d3d1] bg-white py-12 text-center text-sm text-[#78716c]">
           {termos.length ? `Ninguém encontrado para "${busca.trim()}".` : participantes.length === 0 ? (modo === "almoco" ? "Ninguém comprou almoço neste evento." : "Nenhuma inscrição paga neste evento.") : "Ninguém nesta lista."}
@@ -795,7 +835,10 @@ function ListaTab({
         <ul className="overflow-hidden rounded-2xl border border-[#e7e5e4] bg-white">
           {lista.map((p) => {
             const completo = p.usadas >= p.total;
-            const sub = modo === "almoco" ? p.tipos.join(" · ") : p.responsavel && normalizar(p.responsavel) !== normalizar(p.nome) ? `Resp.: ${p.responsavel}` : "";
+            const resp = p.responsavel && normalizar(p.responsavel) !== normalizar(p.nome) ? `Resp.: ${p.responsavel}` : "";
+            const a = modo === "entrada" ? almocoDe.get(p.inscricaoId) : undefined;
+            const comAlmoco = a ? `Almoço: ${a.tipos.join(", ")}${a.usadas >= a.total ? " (já pegou)" : ""}` : "";
+            const sub = modo === "almoco" ? p.tipos.join(" · ") : [comAlmoco, resp].filter(Boolean).join(" · ");
             return (
               <li key={p.inscricaoId} className="flex items-center gap-3 border-b border-[#f5f4f2] px-3.5 py-3 last:border-0">
                 <div
