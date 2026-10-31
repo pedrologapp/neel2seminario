@@ -29,13 +29,29 @@ export function QrScanner({
     let cancelado = false;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let scanner: any = null;
+    let iniciando: Promise<unknown> | null = null;
+
+    // (31/10) parar só depois que a câmera terminou de ligar; o stop() da lib
+    // lança erro SÍNCRONO quando a câmera não está rodando (sem câmera, ou
+    // trocando Entrada/Almoço rápido) — isso derrubava a página inteira.
+    const parar = () => {
+      try {
+        Promise.resolve(scanner?.stop())
+          .then(() => scanner?.clear())
+          .catch(() => {
+            /* já parado */
+          });
+      } catch {
+        /* não estava rodando */
+      }
+    };
 
     (async () => {
       try {
         const { Html5Qrcode } = await import("html5-qrcode");
         if (cancelado) return;
         scanner = new Html5Qrcode("qr-reader");
-        await scanner.start(
+        iniciando = scanner.start(
           { facingMode: "environment" },
           { fps: 10, qrbox: { width: 250, height: 250 } },
           (decoded: string) => onResultRef.current(decoded),
@@ -43,7 +59,10 @@ export function QrScanner({
             /* leitura sem QR no frame — ignorar */
           },
         );
+        await iniciando;
+        if (cancelado) parar();
       } catch (e) {
+        if (cancelado) return;
         const msg =
           e instanceof Error ? e.message : "Não foi possível acessar a câmera.";
         onErrorRef.current?.(msg);
@@ -52,21 +71,14 @@ export function QrScanner({
 
     return () => {
       cancelado = true;
-      if (scanner) {
-        scanner
-          .stop()
-          .then(() => scanner.clear())
-          .catch(() => {
-            /* já parado */
-          });
-      }
+      if (iniciando) iniciando.then(parar, () => {});
     };
   }, []);
 
   return (
     <div
       id="qr-reader"
-      className="mx-auto w-full max-w-sm overflow-hidden rounded-2xl border border-border bg-black"
+      className="mx-auto aspect-square w-full max-w-sm overflow-hidden bg-black"
     />
   );
 }

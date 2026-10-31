@@ -24,12 +24,15 @@ export default async function PortariaEventoPage({ params }: PageProps) {
 
   if (!evento) notFound();
 
-  const participantes = await listarParticipantes(eventoId);
+  const [entrada, almoco] = await Promise.all([
+    listarParticipantes(eventoId, "entrada"),
+    listarParticipantes(eventoId, "almoco"),
+  ]);
 
   return (
     <PortariaApp
       evento={{ id: evento.id, nome: evento.nome }}
-      participantesIniciais={participantes}
+      listasIniciais={{ entrada, almoco }}
     />
   );
 }
