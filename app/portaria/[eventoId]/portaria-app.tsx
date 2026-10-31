@@ -583,6 +583,8 @@ function ListaTab({
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<Filtro>("faltam");
   const [confirmando, setConfirmando] = useState<Participante | null>(null);
+  // nome longo: toca no nome e ele abre inteiro (toca de novo, fecha)
+  const [aberto, setAberto] = useState<string | null>(null);
   const cor = COR[modo];
 
   // cortesias e "fará em outro dia" ficam nas abas delas (e em Todos / na busca)
@@ -655,9 +657,12 @@ function ListaTab({
                 >
                   {completo ? <Check className="size-5" /> : iniciais(p.nome)}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="truncate font-semibold leading-tight">{p.nome}</span>
+                <div
+                  className="min-w-0 flex-1 cursor-pointer"
+                  onClick={() => setAberto(aberto === p.inscricaoId ? null : p.inscricaoId)}
+                >
+                  <div className={aberto === p.inscricaoId ? "flex flex-wrap items-center gap-1.5" : "flex items-center gap-1.5"}>
+                    <span className={aberto === p.inscricaoId ? "break-words font-semibold leading-tight" : "truncate font-semibold leading-tight"}>{p.nome}</span>
                     {p.etiqueta && (
                       <span
                         className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
@@ -667,7 +672,7 @@ function ListaTab({
                       </span>
                     )}
                   </div>
-                  {sub && <div className="truncate text-xs text-[#78716c]">{sub}</div>}
+                  {sub && <div className={aberto === p.inscricaoId ? "break-words text-xs text-[#78716c]" : "truncate text-xs text-[#78716c]"}>{sub}</div>}
                   <Caixas usadas={p.usadas} total={p.total} />
                 </div>
                 {completo ? (
