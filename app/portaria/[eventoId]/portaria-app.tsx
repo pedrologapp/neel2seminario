@@ -801,6 +801,12 @@ function ListaTab({
             <span className="text-sm font-semibold">
               {modo === "almoco" ? "Almoços ainda não entregues" : "Pessoas que ainda não chegaram"}
               {extra > 0 && <span className="block text-xs font-medium opacity-80">+ {extra} {modo === "almoco" ? "de" : "entre"} cortesia / outro dia</span>}
+              {modo === "almoco" && (() => {
+                const pr: Record<string, number> = {};
+                for (const p of faltam) for (const [k, v] of Object.entries(p.faltaPorTipo)) if (v > 0) pr[k] = (pr[k] ?? 0) + v;
+                const l = Object.entries(pr).sort((x, y) => y[1] - x[1]);
+                return l.length ? <span className="mt-0.5 block text-base font-extrabold">{l.map(([k, v]) => v + " " + k).join(" · ")}</span> : null;
+              })()}
             </span>
             <span className="text-3xl font-extrabold tabular-nums leading-none">{n}</span>
           </div>

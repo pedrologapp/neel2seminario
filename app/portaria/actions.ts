@@ -385,6 +385,8 @@ export type Participante = {
   tipos: string[];
   /** quantos de cada prato (almoço), ex.: { Frango: 1, Carne: 2 } */
   qtdPorTipo: Record<string, number>;
+  /** quanto de cada prato ainda não foi entregue */
+  faltaPorTipo: Record<string, number>;
   /** "Cortesia" ou "Fará em outro dia" (lançados à mão pela organização) */
   etiqueta: string | null;
 };
@@ -521,6 +523,7 @@ async function montarParticipantes(
     .neq("status", "cancelado");
 
   const usadasPorInsc = new Map<string, Set<number>>();
+  const pratoUsadoPorInsc = new Map<string, Map<number, string>>();
   const alunoNomePorInsc = new Map<string, string>();
   const ultimaPorInsc = new Map<string, string>();
   for (const t of tickets ?? []) {
@@ -528,6 +531,14 @@ async function montarParticipantes(
       if (t.usado_em && (!ultimaPorInsc.has(t.inscricao_id) || t.usado_em > ultimaPorInsc.get(t.inscricao_id)!)) {
         ultimaPorInsc.set(t.inscricao_id, t.usado_em);
       }
+      // prato de cada senha usada (para "faltam X Frango, Y Carne")
+      const pr = /frango/i.test(t.nome_tipo ?? "") ? "Frango" : /carne/i.test(t.nome_tipo ?? "") ? "Carne" : "?";
+      let po = pratoUsadoPorInsc.get(t.inscricao_id);
+      if (!po) {
+        po = new Map<number, string>();
+        pratoUsadoPorInsc.set(t.inscricao_id, po);
+      }
+      po.set(t.ordem, pr);
       let s = usadasPorInsc.get(t.inscricao_id);
       if (!s) {
         s = new Set<number>();
@@ -563,7 +574,19 @@ async function montarParticipantes(
       if (curto && it.qtd && it.qtd > 0) qtdPorTipo[curto] = (qtdPorTipo[curto] ?? 0) + it.qtd;
     }
     const tipos = Object.entries(qtdPorTipo).map(([n, q]) => `${q} ${n}`);
-    out.push({ inscricaoId: i.id, nome, responsavel, usadas, total, ultimaEm: ultimaPorInsc.get(i.id) ?? null, tipos, qtdPorTipo, etiqueta: i.registrado_por?.startsWith("portaria-cortesia") || i.registrado_por?.startsWith("cortesia") ? "Cortesia" : i.registrado_por === "portaria-paga-depois" ? "Fará em outro dia" : i.registrado_por === "portaria-maquininha" ? "Maquininha" : null });
+    // o que falta entregar de cada prato; senha sem prato conhecido desconta do primeiro que sobrar
+    const faltaPorTipo: Record<string, number> = { ...qtdPorTipo };
+    let semPrato = 0;
+    for (const pr of pratoUsadoPorInsc.get(i.id)?.values() ?? []) {
+      if (pr !== "?" && (faltaPorTipo[pr] ?? 0) > 0) faltaPorTipo[pr]--;
+      else semPrato++;
+    }
+    for (const k of Object.keys(faltaPorTipo)) {
+      const tira = Math.min(semPrato, faltaPorTipo[k]);
+      faltaPorTipo[k] -= tira;
+      semPrato -= tira;
+    }
+    out.push({ inscricaoId: i.id, nome, responsavel, usadas, total, ultimaEm: ultimaPorInsc.get(i.id) ?? null, tipos, qtdPorTipo, faltaPorTipo, etiqueta: i.registrado_por?.startsWith("portaria-cortesia") || i.registrado_por?.startsWith("cortesia") ? "Cortesia" : i.registrado_por === "portaria-paga-depois" ? "Fará em outro dia" : i.registrado_por === "portaria-maquininha" ? "Maquininha" : null });
   }
 
   return out.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
