@@ -627,7 +627,17 @@ function ListaTab({
                   {completo ? <Check className="size-5" /> : iniciais(p.nome)}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate font-semibold leading-tight">{p.nome}</div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="truncate font-semibold leading-tight">{p.nome}</span>
+                    {p.etiqueta && (
+                      <span
+                        className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                        style={p.etiqueta === "Paga depois" ? { background: "#fef3c7", color: "#92400e" } : { background: "#ede9fe", color: "#5b21b6" }}
+                      >
+                        {p.etiqueta}
+                      </span>
+                    )}
+                  </div>
                   <div className="truncate text-xs text-[#78716c]">
                     {p.total > 1 && <span className="font-semibold tabular-nums">{p.usadas} de {p.total}{sub ? " · " : ""}</span>}
                     {sub}
@@ -702,6 +712,8 @@ function ConfirmarFolha({
         {modo === "almoco" ? "Entregar almoço" : "Confirmar presença"}
       </div>
       <div className="mt-1.5 pr-8 text-2xl font-extrabold leading-tight">{p.nome}</div>
+      {p.etiqueta === "Paga depois" && <div className="mt-1 text-sm font-semibold text-[#92400e]">Liberado para pagar depois</div>}
+      {p.etiqueta === "Cortesia" && <div className="mt-1 text-sm font-semibold text-[#5b21b6]">Cortesia da organização</div>}
       {modo === "almoco" && p.tipos.length > 0 && <div className="mt-1 text-sm text-[#57534e]">{p.tipos.join(" · ")}</div>}
       {p.total > 1 && (
         <div className="mt-3 inline-flex rounded-full px-3 py-1 text-sm font-bold tabular-nums" style={{ background: cor.suave, color: cor.texto }}>

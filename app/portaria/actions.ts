@@ -383,6 +383,8 @@ export type Participante = {
   ultimaEm: string | null;
   /** os tipos comprados neste modo, ex.: "Creme de Frango" (almoço) */
   tipos: string[];
+  /** "Cortesia" ou "Paga depois" (lançados à mão pela organização) */
+  etiqueta: string | null;
 };
 
 export async function listarParticipantes(
@@ -400,14 +402,14 @@ async function montarParticipantes(
   eventoId: string,
   modo: Modo = "entrada",
 ): Promise<Participante[]> {
-  // Base = inscrições PAGAS. O total de senhas vem da quantidade realmente
+  // Base = inscrições PAGAS (+ as liberadas para pagar depois, 31/10). O total de senhas vem da quantidade realmente
   // comprada (itens.qtd), igual ao relatório — não da contagem de linhas em
   // tickets, que pode ter duplicatas (n8n gerou tickets mais de uma vez).
   const { data: inscricoes } = await admin
     .from("inscricoes")
-    .select("id, responsavel_nome, itens")
+    .select("id, responsavel_nome, itens, registrado_por")
     .eq("evento_id", eventoId)
-    .eq("status_pagamento", "pago");
+    .or("status_pagamento.eq.pago,and(status_pagamento.eq.pendente,registrado_por.eq.portaria-paga-depois)");
 
   if (!inscricoes || inscricoes.length === 0) return [];
 
@@ -455,7 +457,7 @@ async function montarParticipantes(
     const usadas = Math.min(usadasPorInsc.get(i.id)?.size ?? 0, total);
 
     const tipos = [...new Set(itens.map((it) => (it.nome ?? "").replace(/^Almo[cç]o\s*-\s*/i, "").replace(/[.,].*$/, "").trim()).filter(Boolean))];
-    out.push({ inscricaoId: i.id, nome, responsavel, usadas, total, ultimaEm: ultimaPorInsc.get(i.id) ?? null, tipos });
+    out.push({ inscricaoId: i.id, nome, responsavel, usadas, total, ultimaEm: ultimaPorInsc.get(i.id) ?? null, tipos, etiqueta: i.registrado_por === "portaria-cortesia" ? "Cortesia" : i.registrado_por === "portaria-paga-depois" ? "Paga depois" : null });
   }
 
   return out.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
